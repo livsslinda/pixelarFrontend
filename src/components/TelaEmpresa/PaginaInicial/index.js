@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Logo from "../../../img/logo.png";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
@@ -6,7 +6,72 @@ import Popup from "reactjs-popup";
 import "reactjs-popup/dist/index.css";
 
 export default function PaginalInicial() {
+  const [titulo, setTitulo] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [requisitos, setRequisitos] = useState("");
+  const [setor, setSetor] = useState("");
+  const [salario, setSalario] = useState("");
+  const [vagas, setVagas] = useState([]);
+  const [erro, setErro] = useState(null);
+  const [loading, setLoading] = useState(true);
+
   const navigate = useNavigate();
+  useEffect(() => {
+    const fetchVagas = async () => {
+      try {
+        setLoading(true);
+        setErro(null);
+        const resposta = await fetch(`http://localhost:3000/vagas/listarTodas`);
+        if (!resposta.ok) {
+          throw new Error("Erro ao buscar Vagas");
+        }
+        const dados = await resposta.json();
+        setVagas(dados);
+      } catch (error) {
+        setErro("Erro ao buscar Vagas");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchVagas();
+  }, [navigate]);
+
+  const handleCriarVaga = async (e, close) => {
+    e.preventDefault();
+    try {
+      const resposta = await fetch(`http://localhost:3000/vagas/criar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id_usuario: 1,
+          titulo,
+          descricao,
+          requisitos,
+          setor,
+          salario,
+        }),
+      });
+
+      if (!resposta.ok) {
+        throw new Error("Erro ao criar vaga");
+      }
+
+      const novaVaga = await resposta.json();
+
+      setVagas((prev) => [...prev, novaVaga]);
+
+      close();
+
+      setTitulo("");
+      setDescricao("");
+      setRequisitos("");
+      setSetor("");
+      setSalario("");
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao criar vaga");
+    }
+  };
 
   const handleDashboard = () => {
     navigate("/dashboard");
@@ -33,7 +98,7 @@ export default function PaginalInicial() {
       {/* NAVBAR */}
       <BarraNavegacao>
         <LogoContainer>
-          <ImagemLogo src={Logo} alt="Logo" onClick={handlePerfil}/>
+          <ImagemLogo src={Logo} alt="Logo" onClick={handlePerfil} />
         </LogoContainer>
 
         <ItensNav>
@@ -48,9 +113,7 @@ export default function PaginalInicial() {
         </InfoUsuario>
       </BarraNavegacao>
 
-      {/* CONTEÚDO */}
       <Conteudo>
-        {/* SIDEBAR */}
         <BarraLateral>
           <TituloSidebar>Filtrar</TituloSidebar>
           <Entrada type="text" placeholder="🔍" />
@@ -62,22 +125,105 @@ export default function PaginalInicial() {
           </Selecao>
           <Rotulo>Salário</Rotulo>
           <ControleDeslizante type="range" />
+          <Popup
+            trigger={<BotaoCriarVaga>Criar Vaga</BotaoCriarVaga>}
+            modal
+            nested
+            overlayStyle={{ background: "rgba(0,0,0,0.5)" }}
+            contentStyle={{
+              background: "transparent", // 🔹 remove fundo branco
+              border: "none",
+              boxShadow: "none",
+              padding: 0,
+            }}
+          >
+            {(close) => (
+              <div style={styles.container}>
+                <div style={styles.card2}>
+                  <span style={styles.fechar} onClick={close}>
+                    Fechar ✖
+                  </span>
+                  <h2 style={{ marginBottom: "15px" }}>Nova Vaga</h2>
+
+                  <form onSubmit={(e) => handleCriarVaga(e, close)}>
+                    <InputForm
+                      style={styles.caixaTexto}
+                      type="text"
+                      name="titulo"
+                      value={titulo}
+                      onChange={(e) => setTitulo(e.target.value)}
+                      placeholder="Título"
+                      required
+                    />
+
+                    <InputForm
+                      style={styles.caixaTexto}
+                      type="text"
+                      name="descricao"
+                      value={descricao}
+                      onChange={(e) => setDescricao(e.target.value)}
+                      placeholder="Descrição"
+                      required
+                    />
+
+                    <InputForm
+                      style={styles.caixaTexto}
+                      type="text"
+                      name="requisitos"
+                      value={requisitos}
+                      onChange={(e) => setRequisitos(e.target.value)}
+                      placeholder="Requisitos"
+                      required
+                    />
+
+                    <InputForm
+                      style={styles.caixaTexto}
+                      type="text"
+                      name="setor"
+                      value={setor}
+                      onChange={(e) => setSetor(e.target.value)}
+                      placeholder="Setor"
+                      required
+                    />
+
+                    <InputForm
+                      style={styles.caixaTexto}
+                      type="number"
+                      name="salario"
+                      value={salario}
+                      onChange={(e) => setSalario(e.target.value)}
+                      placeholder="Salário"
+                      required
+                    />
+
+                    <BotaoSubmit type="submit">Salvar</BotaoSubmit>
+                  </form>
+                </div>
+              </div>
+            )}
+          </Popup>
         </BarraLateral>
 
-        {/* VAGAS */}
         <ListaVagas>
-          {[1, 2, 3].map((_, index) => (
+          {loading && <p>Carregando vagas...</p>}
+          {erro && <p>{erro}</p>}
+          {!loading && !erro && vagas.length === 0 && (
+            <p>Nenhuma vaga encontrada.</p>
+          )}
+
+          {vagas.map((vaga, index) => (
             <CartaoVaga key={index}>
-              <TituloVaga>*******</TituloVaga>
-              <DescricaoVaga>********</DescricaoVaga>
-              <CaixaSalario>R$ *****</CaixaSalario>
+              <TituloVaga>{vaga.titulo}</TituloVaga>
+              <DescricaoVaga>{vaga.descricao}</DescricaoVaga>
+              <CaixaSalario>R$ {vaga.salario}</CaixaSalario>
+
               <Popup
                 trigger={<BotaoDetalhes>Ver detalhes</BotaoDetalhes>}
                 modal
                 nested
                 overlayStyle={{ background: "rgba(0, 0, 0, 0.5)" }}
                 contentStyle={{
-                  background: "transparent", // 🔹 remove fundo branco
+                  background: "transparent",
                   border: "none",
                   boxShadow: "none",
                   padding: 0,
@@ -86,35 +232,25 @@ export default function PaginalInicial() {
                 {(close) => (
                   <div style={styles.container}>
                     <div style={styles.card}>
-                      {/* Botão Fechar */}
                       <span style={styles.fechar} onClick={close}>
                         Fechar ✖
                       </span>
 
-                      {/* Título */}
-                      <h1 style={styles.titulo}>Lorem Ipsum</h1>
-
-                      {/* Subtítulo */}
+                      <h1 style={styles.titulo}>{vaga.titulo}</h1>
                       <h3 style={styles.subtitulo}>Informações da Vaga</h3>
 
-                      {/* Caixa de texto */}
                       <div style={styles.caixaTexto}>
                         <p>
-                          Lorem ipsum dolor sit amet, consectetur adipiscing
-                          elit. Ut pellentesque sapien ac lorem accumsan
-                          venenatis. Maecenas non erat erat. Morbi et facilisis
-                          leo. Cras dignissim velit non condimentum. Suspendisse
-                          id lacus justo. Sed scelerisque bibendum massa, ut
-                          commodo nibh bibendum non. Suspendisse consectetur
-                          arcu sed odio ullamcorper. Nam euismod augue eu
-                          euismod. Duis scelerisque facilisis sodales. Duis
-                          vestibulum, erat non vestibulum malesuada, nibh magna
-                          molestie enim, sed lacinia eros sapien nec elit. Nulla
-                          hendrerit felis neque massa placerat, vitae viverra
-                          elit rhoncus. Maecenas vel arcu pharetra, placerat
-                          mauris eu, pharetra dui. Sed consequat eleifend lacus
-                          vel convallis. Praesent eu hendrerit ante, sit amet
-                          vehicula mi. Nulla eget dolor erat.
+                          <b>Descrição:</b> {vaga.descricao}
+                        </p>
+                        <p>
+                          <b>Requisitos:</b> {vaga.requisitos}
+                        </p>
+                        <p>
+                          <b>Setor:</b> {vaga.setor}
+                        </p>
+                        <p>
+                          <b>Salário:</b> R$ {vaga.salario}
                         </p>
                       </div>
                     </div>
@@ -134,6 +270,24 @@ const styles = {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
+  },
+  card: {
+    background: "linear-gradient(to bottom right, #210892, #563881)",
+    borderRadius: "15px",
+    padding: "30px",
+    width: "500px",
+    textAlign: "center",
+    color: "white",
+    position: "relative",
+  },
+  card2: {
+    background: "linear-gradient(to bottom right, #210892, #563881)",
+    borderRadius: "15px",
+    padding: "70px",
+    width: "900px",
+    textAlign: "center",
+    color: "white",
+    position: "relative",
   },
   card: {
     background: "linear-gradient(to bottom right, #210892, #563881)",
@@ -276,6 +430,41 @@ const Entrada = styled.input`
   border-radius: 8px;
   border: 1px solid #999;
   outline: none;
+`;
+const BotaoCriarVaga = styled.button`
+  margin-top: 15px;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  background-color: #7000d8;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  &:hover {
+    background-color: #4e009d;
+  }
+`;
+
+const InputForm = styled.input`
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  outline: none;
+`;
+
+const BotaoSubmit = styled.button`
+  background-color: #28a745;
+  color: white;
+  padding: 10px;
+  width: 100%;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  &:hover {
+    background-color: #1e7e34;
+  }
 `;
 
 const Selecao = styled.select`

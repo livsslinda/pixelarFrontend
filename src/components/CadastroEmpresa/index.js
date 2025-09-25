@@ -1,68 +1,126 @@
-import React from "react";
-
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-export default function CadastroEmpresa() {
+export default function CadastroUsuario() {
+  const [nome, setNome] = useState("");
+  const [cpf_cnpj, setCnpj] = useState("");
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [erro, setErro] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
 
   const handleVoltar = () => {
     navigate("/");
   };
 
-  const handleCadastrar = () => {
-    navigate("/");
+  const execSubmit = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+    setErro("");
+
+    try {
+      const resposta = await fetch("http://localhost:3000/usuarios/cadastrar", {
+        method: "POST",
+        headers: {
+          "Content-type": "application/json",
+        },
+        body: JSON.stringify({ nome, email, cpf_cnpj, senha }),
+      });
+
+      console.log("Resposta do servidor:", resposta);
+
+      const dados = await resposta.json();
+
+      if (resposta.ok) {
+        alert("Cadastro realizado com sucesso!");
+        navigate("/");
+      } else {
+        setErro(dados.message || "Erro ao fazer o cadastro. Tente novamente.");
+      }
+    } catch (e) {
+      console.error("Falha ao conectar a API:", e);
+      setErro("Não foi possível conectar ao servidor.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div style={styles.page}>
-      <div style={styles.container}>
-        <h2 style={styles.title}>CADASTRO</h2>
+    <form onSubmit={execSubmit}>
+      <div style={styles.page}>
+        <div style={styles.container}>
+          <h2 style={styles.title}>CADASTRO</h2>
 
-        <div style={styles.inputGroup}>
-          <label style={styles.label}>Nome da empresa</label>
-          <input
-            style={styles.input}
-            type="text"
-            placeholder="Digite seu Nome..."
-          />
+          {erro && <p style={{ color: "red", textAlign: "center" }}>{erro}</p>}
+
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Nome da Empresa</label>
+            <input
+              id="nome"
+              name="nome"
+              value={nome}
+              style={styles.input}
+              type="text"
+              placeholder="Digite seu Nome..."
+              onChange={(e) => setNome(e.target.value)}
+              required
+            />
+          </div>
+
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>E-mail</label>
+            <input
+              id="email"
+              name="email"
+              value={email}
+              style={styles.input}
+              type="email"
+              placeholder="Digite seu E-mail..."
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>CNPJ</label>
+            <input
+              id="cpf_cnpj"
+              name="cpf_cnpj"
+              value={cpf_cnpj}
+              style={styles.input}
+              type="text"
+              placeholder="Digite seu CNPJ..."
+              onChange={(e) => setCnpj(e.target.value)}
+              required
+            />
+          </div>
+
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Senha</label>
+            <input
+              id="senha"
+              name="senha"
+              value={senha}
+              style={styles.input}
+              type="password"
+              placeholder="Digite sua Senha..."
+              onChange={(e) => setSenha(e.target.value)}
+              required
+            />
+          </div>
+
+          <button style={styles.button} type="submit" disabled={loading}>
+            {loading ? "Cadastrando..." : "CADASTRAR-SE"}
+          </button>
+
+          <a style={styles.backLink} onClick={handleVoltar}>
+            Voltar
+          </a>
         </div>
-
-        <div style={styles.inputGroup}>
-          <label style={styles.label}>CNPJ</label>
-          <input
-            style={styles.input}
-            type="text"
-            placeholder="Digite seu CNPJ..."
-          />
-        </div>
-
-        <div style={styles.inputGroup}>
-          <label style={styles.label}>E-mail</label>
-          <input
-            style={styles.input}
-            type="email"
-            placeholder="Digite seu E-mail..."
-          />
-        </div>
-
-        <div style={styles.inputGroup}>
-          <label style={styles.label}>Senha</label>
-          <input
-            style={styles.input}
-            type="password"
-            placeholder="Digite sua Senha..."
-          />
-        </div>
-
-        <button style={styles.button} onClick={handleCadastrar}>
-          CADASTRAR-SE
-        </button>
-
-        <a style={styles.backLink} onClick={handleVoltar}>
-          Voltar
-        </a>
       </div>
-    </div>
+    </form>
   );
 }
 

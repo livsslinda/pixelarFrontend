@@ -148,6 +148,11 @@ const PopupButton = styled.button`
 `;
 
 export default function Login() {
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [erro, setErro] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const [showPopup, setShowPopup] = useState(false);
   const navigate = useNavigate();
 
@@ -157,62 +162,112 @@ export default function Login() {
   const handleCadastrarClick = () => setShowPopup(true);
   const handleClosePopup = () => setShowPopup(false);
 
+  const execSubmit = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+    setErro("");
+
+    try {
+      const resposta = await fetch("http://localhost:3000/usuarios/login", {
+        method: "POST",
+        headers: {
+          "Content-type": "application/json",
+        },
+        body: JSON.stringify({ email, senha }),
+      });
+
+      console.log("Resposta do servidor:", resposta);
+
+      const dados = await resposta.json();
+
+      if (resposta.ok) {
+        alert("Login realizado com sucesso!");
+        navigate("/vagas");
+      } else {
+        setErro(dados.message || "Erro ao fazer Login. Tente novamente.");
+      }
+    } catch (e) {
+      console.error("Falha ao conectar a API:", e);
+      setErro("Não foi possível conectar ao servidor.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <Container>
-      {/* Lado esquerdo */}
-      <LeftSide>
-        <Image src={fotoLogin} />
-      </LeftSide>
+    <form onSubmit={execSubmit}>
+      <Container>
+        {/* Lado esquerdo */}
+        <LeftSide>
+          <Image src={fotoLogin} />
+        </LeftSide>
 
-      {/* Lado direito */}
-      <RightSide>
-        <Title>LOGIN</Title>
+        {/* Lado direito */}
+        <RightSide>
+          <Title>LOGIN</Title>
 
-        <InputGroup>
-          <Label>E-mail</Label>
-          <Input type="email" placeholder="Digite seu E-mail..." />
-        </InputGroup>
+          <InputGroup>
+            <Label>E-mail</Label>
+            <Input
+              id="email"
+              name="email"
+              value={email}
+              type="email"
+              placeholder="Digite seu E-mail..."
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </InputGroup>
 
-        <InputGroup>
-          <Label>Senha</Label>
-          <Input type="password" placeholder="Digite sua Senha..." />
-        </InputGroup>
+          <InputGroup>
+            <Label>Senha</Label>
+            <Input
+              id="senha"
+              name="senha"
+              value={senha}
+              type="password"
+              placeholder="Digite sua Senha..."
+              onChange={(e) => setSenha(e.target.value)}
+              required
+            />
+          </InputGroup>
 
-        <Options>
-          <label>
-            <input type="checkbox" />
-            <Remember>Lembrar de Mim</Remember>
-          </label>
-          <LinkGreen href="#">Esqueceu a Senha?</LinkGreen>
-        </Options>
+          <Options>
+            <label>
+              <input type="checkbox" />
+              <Remember>Lembrar de Mim</Remember>
+            </label>
+            <LinkGreen href="#">Esqueceu a Senha?</LinkGreen>
+          </Options>
 
-        <Button onClick={handleEntrar}>ENTRAR</Button>
+          <Button type="submit">ENTRAR</Button>
 
-        <Footer>
-          Não Tem Uma Conta?{" "}
-          <LinkGreen as="span" onClick={handleCadastrarClick}>
-            Cadastrar-se
-          </LinkGreen>
-        </Footer>
-      </RightSide>
+          <Footer>
+            Não Tem Uma Conta?{" "}
+            <LinkGreen as="span" onClick={handleCadastrarClick}>
+              Cadastrar-se
+            </LinkGreen>
+          </Footer>
+        </RightSide>
 
-      {/* Popup */}
-      {showPopup && (
-        <PopupOverlay>
-          <Popup>
-            <Close onClick={handleClosePopup}>Fechar</Close>
-            <PopupText>
-              Antes de fazer o cadastro, nos diga o que você é!
-            </PopupText>
-            <PopupButton onClick={handleEmpresaClick}>
-              Sou uma empresa
-            </PopupButton>
-            <PopupButton onClick={handleUsuarioClick}>
-              Sou um estagiário
-            </PopupButton>
-          </Popup>
-        </PopupOverlay>
-      )}
-    </Container>
+        {/* Popup */}
+        {showPopup && (
+          <PopupOverlay>
+            <Popup>
+              <Close onClick={handleClosePopup}>Fechar</Close>
+              <PopupText>
+                Antes de fazer o cadastro, nos diga o que você é!
+              </PopupText>
+              <PopupButton onClick={handleEmpresaClick}>
+                Sou uma empresa
+              </PopupButton>
+              <PopupButton onClick={handleUsuarioClick}>
+                Sou um estagiário
+              </PopupButton>
+            </Popup>
+          </PopupOverlay>
+        )}
+      </Container>
+    </form>
   );
 }
