@@ -231,6 +231,22 @@ export default function PaginalInicial() {
               <TituloVaga>{vaga.titulo}</TituloVaga>
               <DescricaoVaga>{vaga.descricao}</DescricaoVaga>
               <CaixaSalario>R$ {vaga.salario}</CaixaSalario>
+              <CaixaIcones>
+                <b>
+                  <button
+                    title="Editar"
+                    className="btn btn-sm btn-outline-primary me-2"
+                  >
+                    <i className="bi bi-pencil-square"></i>
+                  </button>
+                  <button
+                    title="Excluir"
+                    className="btn btn-sm btn-outline-danger me-2"
+                  >
+                    <i className="bi bi-trash3-fill"></i>
+                  </button>
+                </b>
+              </CaixaIcones>
 
               <Popup
                 trigger={<BotaoDetalhes>Ver detalhes</BotaoDetalhes>}
@@ -266,21 +282,6 @@ export default function PaginalInicial() {
                         </p>
                         <p>
                           <b>Salário:</b> R$ {vaga.salario}
-                        </p>
-                        <p>
-                          <b>
-                            <button
-                              title="Editar"
-                              className="btn btn-sm btn-outline-primary me-2"
-                            >
-                              <i className="bi bi-pencil-square"></i>
-                            </button>
-                            <button
-                              title="Excluir"
-                              className="btn btn-sm btn-outline-danger me-2"
-                            />
-                            <i className="bi bi-trash3-fill"></i>
-                          </b>
                         </p>
                       </div>
                     </div>
@@ -432,7 +433,7 @@ const Logout = styled.div`
   background-color: rgba(207, 0, 0, 1);
   width: 100px;
   text-align: center;
-  height: 20px;
+  height: 40px;
   padding: 5px;
   color: #fff;
   font-size: 20px;
@@ -584,6 +585,14 @@ const CaixaSalario = styled.div`
   top: 20px;
   right: 20px;
   background-color: #e6e6e6;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-weight: bold;
+`;
+const CaixaIcones = styled.div`
+  position: absolute;
+  top: 60px;
+  right: 20px;
   padding: 6px 10px;
   border-radius: 6px;
   font-weight: bold;
