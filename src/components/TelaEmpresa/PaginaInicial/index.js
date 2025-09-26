@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import Popup from "reactjs-popup";
 import "reactjs-popup/dist/index.css";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap-icons/font/bootstrap-icons.css";
 
 export default function PaginalInicial() {
   const [titulo, setTitulo] = useState("");
@@ -35,7 +37,11 @@ export default function PaginalInicial() {
     };
     fetchVagas();
   }, [navigate]);
-
+  const usuarioStorage = localStorage.getItem("usuarioLogado");
+  if (!usuarioStorage) {
+    navigate("/login");
+    return;
+  }
   const handleCriarVaga = async (e, close) => {
     e.preventDefault();
     try {
@@ -43,7 +49,7 @@ export default function PaginalInicial() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id_usuario: 1,
+          id_usuario: usuarioStorage,
           titulo,
           descricao,
           requisitos,
@@ -93,6 +99,14 @@ export default function PaginalInicial() {
     navigate("/perfilE");
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("usuarioLogado");
+    setTimeout(() => {
+      alert("Deslogando...");
+      navigate("/");
+    }, 500);
+  };
+
   return (
     <PaginaContainer>
       {/* NAVBAR */}
@@ -107,9 +121,10 @@ export default function PaginalInicial() {
           <BotaoNav onClick={handleCandidatos}>Candidatos</BotaoNav>
         </ItensNav>
 
-        <InfoUsuario onClick={handlePerfil}>
-          <NomeUsuario>Usuário</NomeUsuario>
-          <Avatar>👤</Avatar>
+        <InfoUsuario>
+          <Logout onClick={handleLogout}>Sair</Logout>
+          <TextoUsuario>Usuário</TextoUsuario>
+          <Avatar onClick={handlePerfil}>👤</Avatar>
         </InfoUsuario>
       </BarraNavegacao>
 
@@ -252,6 +267,21 @@ export default function PaginalInicial() {
                         <p>
                           <b>Salário:</b> R$ {vaga.salario}
                         </p>
+                        <p>
+                          <b>
+                            <button
+                              title="Editar"
+                              className="btn btn-sm btn-outline-primary me-2"
+                            >
+                              <i className="bi bi-pencil-square"></i>
+                            </button>
+                            <button
+                              title="Excluir"
+                              className="btn btn-sm btn-outline-danger me-2"
+                            />
+                            <i className="bi bi-trash3-fill"></i>
+                          </b>
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -343,7 +373,14 @@ const PaginaContainer = styled.div`
   background-color: #efefff;
   min-height: 100vh;
 `;
-
+const TextoUsuario = styled.button`
+  padding: 5px;
+  color: #fff;
+  font-size: 20px;
+  background: transparent;
+  border: 0px;
+  font-weight: bold;
+`;
 const BarraNavegacao = styled.div`
   background-color: #7000d8;
   display: flex;
@@ -389,7 +426,19 @@ const InfoUsuario = styled.div`
   gap: 10px;
   cursor: pointer;
 `;
-
+const Logout = styled.div`
+  padding: 10px;
+  border-radius: 10px;
+  background-color: rgba(207, 0, 0, 1);
+  width: 100px;
+  text-align: center;
+  height: 20px;
+  padding: 5px;
+  color: #fff;
+  font-size: 20px;
+  border: 0px;
+  font-weight: bold;
+`;
 const NomeUsuario = styled.span`
   font-size: 12px;
   color: #ffefff;

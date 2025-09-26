@@ -182,7 +182,10 @@ export default function Login() {
 
       if (resposta.ok) {
         alert("Login realizado com sucesso!");
-        navigate("/vagas");
+        localStorage.setItem("usuarioLogado", JSON.stringify(dados.usuario));
+        setTimeout(() => {
+          navigate("/vagas");
+        }, 1000);
       } else {
         setErro(dados.message || "Erro ao fazer Login. Tente novamente.");
       }
