@@ -33,6 +33,14 @@ const RightSide = styled.div`
   justify-content: center;
   padding: 0 50px;
 `;
+const SuccessBox = styled.div`
+  background-color: #d4edda;
+  border: 1px solid #c3e6cb;
+  color: #155724;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 15px;
+`;
 
 const Title = styled.h2`
   font-size: 32px;
@@ -150,8 +158,9 @@ const PopupButton = styled.button`
 export default function Login() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-  const [erro, setErro] = useState("");
+  const [error, setErro] = useState("");
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const [showPopup, setShowPopup] = useState(false);
   const navigate = useNavigate();
@@ -181,8 +190,16 @@ export default function Login() {
       const dados = await resposta.json();
 
       if (resposta.ok) {
-        alert("Login realizado com sucesso!");
-        localStorage.setItem("usuarioLogado", JSON.stringify(dados.usuario));
+        setSuccess(true);
+
+        localStorage.setItem(
+          "usuarioLogado",
+          JSON.stringify({
+            ...dados.usuario,
+            token: dados.token,
+          })
+        );
+
         setTimeout(() => {
           navigate("/vagas");
         }, 1000);
@@ -242,8 +259,15 @@ export default function Login() {
             </label>
             <LinkGreen href="#">Esqueceu a Senha?</LinkGreen>
           </Options>
-
-          <Button type="submit">ENTRAR</Button>
+          {error && (
+            <div className="alert alert-danger" role="alert">
+              {error}
+            </div>
+          )}
+          {success && <SuccessBox>Login bem-sucedido</SuccessBox>}
+          <Button type="submit" disabled={loading}>
+            {loading ? "Entrando..." : "Entrar"}
+          </Button>
 
           <Footer>
             Não Tem Uma Conta?{" "}

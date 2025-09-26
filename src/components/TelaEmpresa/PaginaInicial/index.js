@@ -7,7 +7,7 @@ import "reactjs-popup/dist/index.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 
-export default function PaginalInicial() {
+export default function PaginaInicial() {
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [requisitos, setRequisitos] = useState("");
@@ -17,7 +17,43 @@ export default function PaginalInicial() {
   const [erro, setErro] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const [vagaEmEdicao, setVagaEmEdicao] = useState(null);
+  const [formDados, setFormDados] = useState({
+    id_vaga: "",
+    id_usuario: "",
+    titulo: "",
+    descricao: "",
+    requisitos: "",
+    setor: "",
+    salario: "",
+    status_vaga: "",
+  });
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [editErro, setEditErro] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+
   const navigate = useNavigate();
+
+  const atualizarVaga = async (id, dadosVaga) => {
+    try {
+      const resposta = await fetch(
+        `http://localhost:3000/vagas/atualizar/${id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${usuario.token}`,
+          },
+          body: JSON.stringify(dadosVaga),
+        }
+      );
+      return await resposta.json();
+    } catch (erro) {
+      console.log("Erro ao atualizar vaga:", erro);
+      throw erro;
+    }
+  };
+
   useEffect(() => {
     const fetchVagas = async () => {
       try {
@@ -37,35 +73,41 @@ export default function PaginalInicial() {
     };
     fetchVagas();
   }, [navigate]);
-  const usuarioStorage = localStorage.getItem("usuarioLogado");
-  if (!usuarioStorage) {
+
+  const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
+  if (!usuario) {
     navigate("/login");
-    return;
+    return null;
   }
+
   const handleCriarVaga = async (e, close) => {
     e.preventDefault();
+
     try {
       const resposta = await fetch(`http://localhost:3000/vagas/criar`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${usuario.token}`,
+        },
         body: JSON.stringify({
-          id_usuario: usuarioStorage,
+          id_usuario: usuario.id_usuario,
           titulo,
           descricao,
           requisitos,
           setor,
-          salario,
+          salario: Number(salario),
         }),
       });
 
       if (!resposta.ok) {
+        const err = await resposta.json();
+        console.error("Erro do backend:", err);
         throw new Error("Erro ao criar vaga");
       }
 
       const novaVaga = await resposta.json();
-
       setVagas((prev) => [...prev, novaVaga]);
-
       close();
 
       setTitulo("");
@@ -75,36 +117,108 @@ export default function PaginalInicial() {
       setSalario("");
     } catch (error) {
       console.error(error);
-      alert("Erro ao criar vaga");
+      alert("Erro ao criar vaga", error.message);
     }
   };
 
-  const handleDashboard = () => {
-    navigate("/dashboard");
+  // Editar vaga
+  const execEditar = (vaga) => {
+    setVagaEmEdicao(vaga);
+    setFormDados({
+      id_vaga: vaga.id_vaga,
+      id_usuario: vaga.id_usuario,
+      titulo: vaga.titulo,
+      descricao: vaga.descricao,
+      requisitos: vaga.requisitos,
+      setor: vaga.setor,
+      salario: vaga.salario,
+      status_vaga: vaga.status_vaga,
+    });
+    setEditErro(null);
+    setShowEditModal(true);
   };
 
-  const handleCandidatos = () => {
-    navigate("/candidatos");
+  const handleSalvarEdicao = async (e) => {
+    e.preventDefault();
+    if (!vagaEmEdicao) return;
+
+    setIsUpdating(true);
+    setEditErro(null);
+
+    try {
+      const carregar = {
+        id_usuario: formDados.id_usuario,
+        titulo: formDados.titulo,
+        descricao: formDados.descricao,
+        requisitos: formDados.requisitos,
+        setor: formDados.setor,
+        salario: parseFloat(formDados.salario),
+        status_vaga: formDados.status_vaga,
+      };
+
+      const vagaAtualizada = await atualizarVaga(
+        vagaEmEdicao.id_vaga,
+        carregar
+      );
+
+      setVagas((prev) =>
+        prev.map((vaga) =>
+          vaga.id_vaga === vagaAtualizada.id_vaga ? vagaAtualizada : vaga
+        )
+      );
+
+      setShowEditModal(false);
+      setVagaEmEdicao(null);
+      window.location.reload();
+    } catch (erro) {
+      console.log("Erro ao salvar edição", erro);
+      setEditErro("Falha ao salvar edição " + erro);
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
-  const handleVagas = () => {
-    navigate("/vagasE");
+  const handleCancelarEdicao = () => {
+    setShowEditModal(false);
+    setVagaEmEdicao(null);
+    setEditErro(null);
   };
 
-  const handleDetalhes = () => {
-    navigate("/detalhesVagasE");
-  };
+  // Excluir vaga
+  const executaExcluir = async (idVaga) => {
+    if (window.confirm(`Tem certeza que deseja excluir a vaga ID ${idVaga}?`)) {
+      try {
+        const resposta = await fetch(
+          `http://localhost:3000/vagas/deletar/${idVaga}`,
+          {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${usuario.token}`,
+            },
+          }
+        );
 
-  const handlePerfil = () => {
-    navigate("/perfilE");
-  };
+        if (!resposta.ok) {
+          throw new Error("Erro ao excluir no servidor");
+        }
 
+        setVagas((prev) => prev.filter((vaga) => vaga.id_vaga !== idVaga));
+        alert(`Vaga ID ${idVaga} excluída com sucesso!`);
+      } catch (erro) {
+        console.error(`Erro ao excluir vaga ID ${idVaga}`, erro);
+        alert(`Falha ao excluir vaga: ${erro.message}`);
+      }
+    }
+  };
+  // Navegação
+  const handleDashboard = () => navigate("/dashboard");
+  const handleCandidatos = () => navigate("/candidatos");
+  const handleVagas = () => navigate("/vagasE");
+  const handleDetalhes = () => navigate("/detalhesVagasE");
+  const handlePerfil = () => navigate("/perfilE");
   const handleLogout = () => {
     localStorage.removeItem("usuarioLogado");
-    setTimeout(() => {
-      alert("Deslogando...");
-      navigate("/");
-    }, 500);
+    setTimeout(() => navigate("/"), 500);
   };
 
   return (
@@ -128,6 +242,7 @@ export default function PaginalInicial() {
         </InfoUsuario>
       </BarraNavegacao>
 
+      {/* CONTEÚDO */}
       <Conteudo>
         <BarraLateral>
           <TituloSidebar>Filtrar</TituloSidebar>
@@ -140,13 +255,14 @@ export default function PaginalInicial() {
           </Selecao>
           <Rotulo>Salário</Rotulo>
           <ControleDeslizante type="range" />
+
           <Popup
             trigger={<BotaoCriarVaga>Criar Vaga</BotaoCriarVaga>}
             modal
             nested
             overlayStyle={{ background: "rgba(0,0,0,0.5)" }}
             contentStyle={{
-              background: "transparent", // 🔹 remove fundo branco
+              background: "transparent",
               border: "none",
               boxShadow: "none",
               padding: 0,
@@ -155,62 +271,46 @@ export default function PaginalInicial() {
             {(close) => (
               <div style={styles.container}>
                 <div style={styles.card2}>
-                  <span style={styles.fechar} onClick={close}>
+                  <h2 style={styles.fechar} onClick={close}>
                     Fechar ✖
-                  </span>
+                  </h2>
                   <h2 style={{ marginBottom: "15px" }}>Nova Vaga</h2>
-
                   <form onSubmit={(e) => handleCriarVaga(e, close)}>
                     <InputForm
-                      style={styles.caixaTexto}
                       type="text"
-                      name="titulo"
                       value={titulo}
                       onChange={(e) => setTitulo(e.target.value)}
                       placeholder="Título"
                       required
                     />
-
                     <InputForm
-                      style={styles.caixaTexto}
                       type="text"
-                      name="descricao"
                       value={descricao}
                       onChange={(e) => setDescricao(e.target.value)}
                       placeholder="Descrição"
                       required
                     />
-
                     <InputForm
-                      style={styles.caixaTexto}
                       type="text"
-                      name="requisitos"
                       value={requisitos}
                       onChange={(e) => setRequisitos(e.target.value)}
                       placeholder="Requisitos"
                       required
                     />
-
                     <InputForm
-                      style={styles.caixaTexto}
                       type="text"
-                      name="setor"
                       value={setor}
                       onChange={(e) => setSetor(e.target.value)}
                       placeholder="Setor"
                       required
                     />
-
                     <InputForm
-                      style={styles.caixaTexto}
                       type="number"
-                      name="salario"
                       value={salario}
                       onChange={(e) => setSalario(e.target.value)}
                       placeholder="Salário"
                       required
                     />
-
                     <BotaoSubmit type="submit">Salvar</BotaoSubmit>
                   </form>
                 </div>
@@ -226,28 +326,124 @@ export default function PaginalInicial() {
             <p>Nenhuma vaga encontrada.</p>
           )}
 
-          {vagas.map((vaga, index) => (
-            <CartaoVaga key={index}>
+          {vagas.map((vaga) => (
+            <CartaoVaga key={vaga.id_vaga}>
               <TituloVaga>{vaga.titulo}</TituloVaga>
               <DescricaoVaga>{vaga.descricao}</DescricaoVaga>
               <CaixaSalario>R$ {vaga.salario}</CaixaSalario>
               <CaixaIcones>
-                <b>
-                  <button
-                    title="Editar"
-                    className="btn btn-sm btn-outline-primary me-2"
+                <button
+                  title="Editar"
+                  className="btn btn-sm btn-outline-primary me-2"
+                  onClick={() => execEditar(vaga)} // só atualiza os dados e abre modal
+                >
+                  <i className="bi bi-pencil-square"></i>
+                </button>
+
+                {showEditModal && (
+                  <Popup
+                    open={showEditModal}
+                    modal
+                    nested
+                    onClose={handleCancelarEdicao}
+                    overlayStyle={{ background: "rgba(0, 0, 0, 0.5)" }}
+                    contentStyle={{
+                      background: "transparent",
+                      border: "none",
+                      boxShadow: "none",
+                      padding: 0,
+                    }}
                   >
-                    <i className="bi bi-pencil-square"></i>
-                  </button>
-                  <button
-                    title="Excluir"
-                    className="btn btn-sm btn-outline-danger me-2"
-                  >
-                    <i className="bi bi-trash3-fill"></i>
-                  </button>
-                </b>
+                    {(close) => (
+                      <div style={styles.container}>
+                        <div style={styles.card2}>
+                          <h2
+                            style={styles.fechar}
+                            onClick={handleCancelarEdicao}
+                          >
+                            Fechar ✖
+                          </h2>
+                          <h2 style={{ marginBottom: "15px" }}>Editar Vaga</h2>
+                          <form onSubmit={handleSalvarEdicao}>
+                            <InputForm
+                              type="text"
+                              value={formDados.titulo}
+                              onChange={(e) =>
+                                setFormDados({
+                                  ...formDados,
+                                  titulo: e.target.value,
+                                })
+                              }
+                              placeholder="Título"
+                              required
+                            />
+                            <InputForm
+                              type="text"
+                              value={formDados.descricao}
+                              onChange={(e) =>
+                                setFormDados({
+                                  ...formDados,
+                                  descricao: e.target.value,
+                                })
+                              }
+                              placeholder="Descrição"
+                              required
+                            />
+                            <InputForm
+                              type="text"
+                              value={formDados.requisitos}
+                              onChange={(e) =>
+                                setFormDados({
+                                  ...formDados,
+                                  requisitos: e.target.value,
+                                })
+                              }
+                              placeholder="Requisitos"
+                              required
+                            />
+                            <InputForm
+                              type="text"
+                              value={formDados.setor}
+                              onChange={(e) =>
+                                setFormDados({
+                                  ...formDados,
+                                  setor: e.target.value,
+                                })
+                              }
+                              placeholder="Setor"
+                              required
+                            />
+                            <InputForm
+                              type="number"
+                              value={formDados.salario}
+                              onChange={(e) =>
+                                setFormDados({
+                                  ...formDados,
+                                  salario: e.target.value,
+                                })
+                              }
+                              placeholder="Salário"
+                              required
+                            />
+                            <BotaoSubmit type="submit" disabled={isUpdating}>
+                              {isUpdating ? "Salvando..." : "Salvar Edição"}
+                            </BotaoSubmit>
+                          </form>
+                        </div>
+                      </div>
+                    )}
+                  </Popup>
+                )}
+                <button
+                  title="Excluir"
+                  className="btn btn-sm btn-outline-danger me-2"
+                  onClick={() => executaExcluir(vaga.id_vaga)}
+                >
+                  <i className="bi bi-trash3-fill"></i>
+                </button>
               </CaixaIcones>
 
+              {/* Detalhes */}
               <Popup
                 trigger={<BotaoDetalhes>Ver detalhes</BotaoDetalhes>}
                 modal
@@ -263,13 +459,11 @@ export default function PaginalInicial() {
                 {(close) => (
                   <div style={styles.container}>
                     <div style={styles.card}>
-                      <span style={styles.fechar} onClick={close}>
+                      <h2 style={styles.fechar} onClick={close}>
                         Fechar ✖
-                      </span>
-
+                      </h2>
                       <h1 style={styles.titulo}>{vaga.titulo}</h1>
                       <h3 style={styles.subtitulo}>Informações da Vaga</h3>
-
                       <div style={styles.caixaTexto}>
                         <p>
                           <b>Descrição:</b> {vaga.descricao}
@@ -344,7 +538,7 @@ const styles = {
   subtitulo: {
     fontSize: "14px",
     fontWeight: "normal",
-    textAlign: "left",
+
     marginBottom: "10px",
   },
   caixaTexto: {
