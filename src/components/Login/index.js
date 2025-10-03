@@ -165,9 +165,16 @@ export default function Login() {
   const [showPopup, setShowPopup] = useState(false);
   const navigate = useNavigate();
 
-  const handleEmpresaClick = () => navigate("/CadastroE");
-  const handleUsuarioClick = () => navigate("/CadastroU");
-  const handleEntrar = () => navigate("/vagas");
+  const handleEmpresaClick = () => {
+    localStorage.removeItem("usuarioLogado");
+    navigate("/CadastroE");
+  };
+
+  const handleUsuarioClick = () => {
+    localStorage.removeItem("usuarioLogado");
+    navigate("/CadastroU");
+  };
+
   const handleCadastrarClick = () => setShowPopup(true);
   const handleClosePopup = () => setShowPopup(false);
 
@@ -189,7 +196,7 @@ export default function Login() {
 
       const dados = await resposta.json();
 
-      if (resposta.ok) {
+      if (resposta.ok && dados.usuario) {
         setSuccess(true);
 
         localStorage.setItem(
@@ -201,7 +208,11 @@ export default function Login() {
         );
 
         setTimeout(() => {
-          navigate("/vagas");
+          if (dados.usuario.tipo_usuario === "avaliador") {
+            navigate("/vagas");
+          } else {
+            navigate("/vagasU");
+          }
         }, 1000);
       } else {
         setErro(dados.message || "Erro ao fazer Login. Tente novamente.");
@@ -215,14 +226,12 @@ export default function Login() {
   };
 
   return (
-    <form onSubmit={execSubmit}>
+    <form>
       <Container>
-        {/* Lado esquerdo */}
         <LeftSide>
           <Image src={fotoLogin} />
         </LeftSide>
 
-        {/* Lado direito */}
         <RightSide>
           <Title>LOGIN</Title>
 
@@ -265,7 +274,7 @@ export default function Login() {
             </div>
           )}
           {success && <SuccessBox>Login bem-sucedido</SuccessBox>}
-          <Button type="submit" disabled={loading}>
+          <Button onClick={execSubmit} disabled={loading}>
             {loading ? "Entrando..." : "Entrar"}
           </Button>
 
@@ -277,7 +286,6 @@ export default function Login() {
           </Footer>
         </RightSide>
 
-        {/* Popup */}
         {showPopup && (
           <PopupOverlay>
             <Popup>

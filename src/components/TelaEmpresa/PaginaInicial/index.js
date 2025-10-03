@@ -237,7 +237,7 @@ export default function PaginaInicial() {
 
         <InfoUsuario>
           <Logout onClick={handleLogout}>Sair</Logout>
-          <TextoUsuario>Usuário</TextoUsuario>
+          <TextoUsuario>{usuario.nome}</TextoUsuario>
           <Avatar onClick={handlePerfil}>👤</Avatar>
         </InfoUsuario>
       </BarraNavegacao>

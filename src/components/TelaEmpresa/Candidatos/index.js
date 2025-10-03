@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 import Logo from "../../../img/logo.png";
@@ -6,9 +6,6 @@ import { FaPlus, FaCommentAlt } from "react-icons/fa";
 
 import Popup from "reactjs-popup";
 import "reactjs-popup/dist/index.css";
-
-// ...
-
 const CartaoCandidato = styled.div`
   display: flex;
   align-items: center;
@@ -59,14 +56,13 @@ const CandidaturaT = styled.h2`
   margin-bottom: 0;
   font-size: 30px;
 `;
-// Container principal (abaixo da navbar)
+
 const Container = styled.div`
   display: flex;
   height: calc(100vh - 60px); /* ocupa a tela inteira menos a navbar */
   font-family: Arial, sans-serif;
 `;
 
-// Sidebar
 const BarraLateral = styled.div`
   width: 300px;
   background: linear-gradient(to bottom, #2d007d, #512b90);
@@ -78,7 +74,6 @@ const BarraLateral = styled.div`
   overflow-y: auto; /* scroll só aqui se necessário */
 `;
 
-// Lista de vagas
 const ListaVagas = styled.div`
   display: flex;
   gap: 10px;
@@ -243,89 +238,6 @@ const BotaoEnviar = styled.button`
   font-weight: bold;
 `;
 
-// Barra de navegação
-const BarraNavegacao = styled.div`
-  background-color: #7000d8;
-  display: flex;
-  align-items: center;
-  padding: 10px 30px;
-  justify-content: space-between;
-`;
-
-const LogoContainer = styled.div`
-  display: flex;
-  align-items: center;
-`;
-
-const ImagemLogo = styled.img`
-  width: 40px;
-  height: 40px;
-  object-fit: contain;
-  cursor: pointer;
-`;
-
-const ItensNav = styled.div`
-  display: flex;
-  gap: 15px;
-`;
-
-const BotaoNav = styled.button`
-  background-color: ${(props) => (props.ativo ? "#000" : "#b188ff")};
-  color: #fff;
-  border: none;
-  border-radius: 20px;
-  padding: 8px 16px;
-  font-size: 14px;
-  cursor: pointer;
-
-  &:hover {
-    background-color: #000;
-  }
-`;
-
-const InfoUsuario = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-`;
-
-const NomeUsuario = styled.span`
-  font-size: 12px;
-  color: #ffefff;
-`;
-
-const Avatar = styled.div`
-  background-color: #d2bfff;
-  border-radius: 50%;
-  padding: 10px;
-  font-size: 18px;
-`;
-
-const PopunContainer = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 999;
-`;
-
-// const Popup = styled.div`
-//   background: linear-gradient(135deg, #2c2cfc, #1e1e2f);
-//   padding: 30px;
-//   border-radius: 20px;
-//   width: 90%;
-//   max-width: 400px;
-//   color: #fff;
-//   text-align: center;
-//   position: relative;
-// `;
-
 const Fechar = styled.span`
   position: absolute;
   top: 10px;
@@ -374,6 +286,81 @@ const BotaoEditar = styled.button`
     background-color: #4b00cc;
   }
 `;
+
+const TextoUsuario = styled.button`
+  padding: 5px;
+  color: #fff;
+  font-size: 20px;
+  background: transparent;
+  border: 0px;
+  font-weight: bold;
+`;
+
+const BarraNavegacao = styled.div`
+  background-color: #7000d8;
+  display: flex;
+  align-items: center;
+  padding: 10px 30px;
+  justify-content: space-between;
+`;
+
+const LogoContainer = styled.div`
+  display: flex;
+  align-items: center;
+`;
+
+const ImagemLogo = styled.img`
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  cursor: pointer;
+`;
+
+const ItensNav = styled.div`
+  display: flex;
+  gap: 15px;
+`;
+
+const BotaoNav = styled.button`
+  background-color: ${(props) => (props.ativo ? "#000" : "#b188ff")};
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  &:hover {
+    background-color: #000;
+  }
+`;
+
+const InfoUsuario = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+`;
+
+const Logout = styled.div`
+  padding: 10px;
+  border-radius: 10px;
+  background-color: rgba(207, 0, 0, 1);
+  width: 100px;
+  text-align: center;
+  height: 40px;
+  padding: 5px;
+  color: #fff;
+  font-size: 20px;
+  border: 0px;
+  font-weight: bold;
+`;
+
+const Avatar = styled.div`
+  background-color: #d2bfff;
+  border-radius: 50%;
+  padding: 10px;
+  font-size: 18px;
+`;
 export default function Candidatos() {
   const navigate = useNavigate();
   const handleVagas = () => navigate("/vagas");
@@ -381,12 +368,48 @@ export default function Candidatos() {
   const handlePerfil = () => {
     navigate("/perfilE");
   };
+  const handleLogout = () => {
+    localStorage.removeItem("usuarioLogado");
+    setTimeout(() => navigate("/"), 500);
+  };
+  const [vagas, setVagas] = useState([]);
+  const [erro, setErro] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
+    if (!usuario) {
+      navigate("/login");
+      return;
+    }
+
+    const fetchVagas = async () => {
+      try {
+        setLoading(true);
+        setErro(null);
+        const resposta = await fetch(
+          `http://localhost:3000/vagas/listarPorId/${usuario.id}`
+        );
+        if (!resposta.ok) throw new Error("Erro ao buscar Vagas");
+        const dados = await resposta.json();
+        setVagas(dados);
+      } catch (error) {
+        setErro("Erro ao buscar Vagas");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVagas();
+  }, [navigate]);
+
+  const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
 
   return (
     <>
       <BarraNavegacao>
         <LogoContainer>
-          <ImagemLogo src={Logo} alt="Logo" />
+          <ImagemLogo src={Logo} alt="Logo" onClick={handlePerfil} />
         </LogoContainer>
 
         <ItensNav>
@@ -395,21 +418,27 @@ export default function Candidatos() {
           <BotaoNav ativo>Candidatos</BotaoNav>
         </ItensNav>
 
-        <InfoUsuario onClick={handlePerfil}>
-          <NomeUsuario>Usuário</NomeUsuario>
-          <Avatar>👤</Avatar>
+        <InfoUsuario>
+          <Logout onClick={handleLogout}>Sair</Logout>
+          <TextoUsuario>{usuario.nome}</TextoUsuario>
+          <Avatar onClick={handlePerfil}>👤</Avatar>
         </InfoUsuario>
       </BarraNavegacao>
-
       <Container>
         <BarraLateral>
           {/* LISTA DE VAGAS */}
           <ListaVagas>
-            <CartaoVaga>Desenvolvedor Frontend</CartaoVaga>
-            <CartaoVaga>Designer UI/UX</CartaoVaga>
-            <CartaoVaga>Analista de Dados</CartaoVaga>
-            <CartaoVaga>Gestor de Projetos</CartaoVaga>
-            <CartaoVaga>DevOps</CartaoVaga>
+            {loading ? (
+              <CartaoVaga>Carregando...</CartaoVaga>
+            ) : erro ? (
+              <CartaoVaga>{erro}</CartaoVaga>
+            ) : vagas.length === 0 ? (
+              <CartaoVaga>Nenhuma vaga encontrada</CartaoVaga>
+            ) : (
+              vagas.map((vaga) => (
+                <CartaoVaga key={vaga.id}>{vaga.titulo}</CartaoVaga>
+              ))
+            )}
           </ListaVagas>
 
           <ConteudoLateral>
@@ -423,7 +452,6 @@ export default function Candidatos() {
                 </NomePontuacao>
               </InfoCandidato>
               <Acoes>
-                {/* POPUP DETALHES */}
                 <Popup
                   trigger={
                     <IconeAcao>
