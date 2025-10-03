@@ -372,6 +372,7 @@ export default function Candidatos() {
     localStorage.removeItem("usuarioLogado");
     setTimeout(() => navigate("/"), 500);
   };
+
   const [vagas, setVagas] = useState([]);
   const [erro, setErro] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -388,11 +389,12 @@ export default function Candidatos() {
         setLoading(true);
         setErro(null);
         const resposta = await fetch(
-          `http://localhost:3000/vagas/listarPorId/${usuario.id}`
+          `http://localhost:3000/vagas/listarPorIdUsuario/${usuario.id}`
         );
         if (!resposta.ok) throw new Error("Erro ao buscar Vagas");
         const dados = await resposta.json();
-        setVagas(dados);
+        console.log("Respoista da API: ", dados);
+        setVagas(Array.isArray(dados) ? dados : [dados]);
       } catch (error) {
         setErro("Erro ao buscar Vagas");
       } finally {
@@ -436,7 +438,7 @@ export default function Candidatos() {
               <CartaoVaga>Nenhuma vaga encontrada</CartaoVaga>
             ) : (
               vagas.map((vaga) => (
-                <CartaoVaga key={vaga.id}>{vaga.titulo}</CartaoVaga>
+                <CartaoVaga key={vaga.id_vaga}>{vaga.titulo}</CartaoVaga>
               ))
             )}
           </ListaVagas>
