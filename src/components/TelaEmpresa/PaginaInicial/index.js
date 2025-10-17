@@ -6,6 +6,11 @@ import Popup from "reactjs-popup";
 import "reactjs-popup/dist/index.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
+import PillNav from "../../componentesMenu/PillNav";
+import { FiLogOut } from "react-icons/fi";
+import { VscAccount } from "react-icons/vsc";
+
+import Dock from "../../componentesMenu/Dock";
 
 export default function PaginaInicial() {
   const [titulo, setTitulo] = useState("");
@@ -42,7 +47,7 @@ export default function PaginaInicial() {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${usuario.token}`,
+            // Authorization: `Bearer ${usuario.token}`,
           },
           body: JSON.stringify(dadosVaga),
         }
@@ -83,15 +88,24 @@ export default function PaginaInicial() {
   const handleCriarVaga = async (e, close) => {
     e.preventDefault();
 
+    console.log("Criando vaga com dados:", {
+      id_usuario: usuario.id,
+      titulo,
+      descricao,
+      requisitos,
+      setor,
+      salario: Number(salario),
+    });
+
     try {
       const resposta = await fetch(`http://localhost:3000/vagas/criar`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${usuario.token}`,
+          // Authorization: `Bearer ${usuario.token}`,
         },
         body: JSON.stringify({
-          id_usuario: usuario.id_usuario,
+          id_usuario: usuario.id,
           titulo,
           descricao,
           requisitos,
@@ -100,14 +114,18 @@ export default function PaginaInicial() {
         }),
       });
 
+      const dadosResposta = await resposta.json();
+
       if (!resposta.ok) {
-        const err = await resposta.json();
-        console.error("Erro do backend:", err);
-        throw new Error("Erro ao criar vaga");
+        console.error("Erro do backend ao criar vaga:", dadosResposta);
+        alert(
+          `Erro ao criar vaga: ${dadosResposta.erro || dadosResposta.mensagem}`
+        );
+        return;
       }
 
-      const novaVaga = await resposta.json();
-      setVagas((prev) => [...prev, novaVaga]);
+      console.log("Vaga criada com sucesso:", dadosResposta);
+      setVagas((prev) => [...prev, dadosResposta]);
       close();
 
       setTitulo("");
@@ -116,8 +134,8 @@ export default function PaginaInicial() {
       setSetor("");
       setSalario("");
     } catch (error) {
-      console.error(error);
-      alert("Erro ao criar vaga", error.message);
+      console.error("Erro no fetch de criar vaga:", error);
+      alert(`Erro ao criar vaga: ${error.message}`);
     }
   };
 
@@ -192,9 +210,9 @@ export default function PaginaInicial() {
           `http://localhost:3000/vagas/deletar/${idVaga}`,
           {
             method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${usuario.token}`,
-            },
+            // headers: {
+            //   Authorization: `Bearer ${usuario.token}`,
+            // },
           }
         );
 
@@ -220,11 +238,40 @@ export default function PaginaInicial() {
     localStorage.removeItem("usuarioLogado");
     setTimeout(() => navigate("/"), 500);
   };
-
+  const items = [
+    {
+      icon: <VscAccount size={18} />,
+      label: "Perfil",
+      onClick: () => handlePerfil(),
+    },
+    {
+      icon: <FiLogOut size={18} />,
+      label: "Sair",
+      onClick: () => handleLogout(),
+    },
+  ];
   return (
     <PaginaContainer>
       {/* NAVBAR */}
-      <BarraNavegacao>
+      <BarraNav>
+        <PillNav
+          logo={Logo}
+          logoAlt="Company Logo"
+          items={[
+            { label: "Home", href: "/vagas" },
+            { label: "Dashboard", href: "/dashboard" },
+            { label: "Candidatos", href: "/candidatos" },
+          ]}
+          activeHref="/"
+          className="custom-nav"
+          ease="power2.easeOut"
+          baseColor="#7000d8"
+          pillColor="#ffffff"
+          hoveredPillTextColor="#ffffff"
+          pillTextColor="#000000"
+        />
+      </BarraNav>
+      {/* <BarraNavegacao>
         <LogoContainer>
           <ImagemLogo src={Logo} alt="Logo" onClick={handlePerfil} />
         </LogoContainer>
@@ -240,7 +287,7 @@ export default function PaginaInicial() {
           <TextoUsuario>{usuario.nome}</TextoUsuario>
           <Avatar onClick={handlePerfil}>👤</Avatar>
         </InfoUsuario>
-      </BarraNavegacao>
+      </BarraNavegacao> */}
 
       {/* CONTEÚDO */}
       <Conteudo>
@@ -486,6 +533,14 @@ export default function PaginaInicial() {
           ))}
         </ListaVagas>
       </Conteudo>
+      <DockWrapper>
+        <Dock
+          items={items}
+          panelHeight={68}
+          baseItemSize={50}
+          magnification={70}
+        />
+      </DockWrapper>
     </PaginaContainer>
   );
 }
@@ -583,6 +638,13 @@ const BarraNavegacao = styled.div`
   padding: 10px 30px;
   justify-content: space-between;
 `;
+const BarraNav = styled.div`
+  background-color: rgba(112, 0, 216, 0);
+  display: flex;
+  align-items: center;
+  padding: 10px 30px;
+  justify-content: center;
+`;
 
 const LogoContainer = styled.div`
   display: flex;
@@ -649,6 +711,7 @@ const Avatar = styled.div`
 const Conteudo = styled.div`
   display: flex;
   padding: 30px;
+  margin-top: 20px;
 `;
 
 const BarraLateral = styled.div`
@@ -799,4 +862,14 @@ const BotaoDetalhes = styled.button`
   border: 1px solid #000;
   background-color: #fff;
   cursor: pointer;
+`;
+const DockWrapper = styled.div`
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  background: transparent;
+  z-index: 1000;
 `;

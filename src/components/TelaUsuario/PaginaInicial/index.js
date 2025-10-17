@@ -1,58 +1,140 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Logo from "../../../img/logo.png";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import Popup from "reactjs-popup";
 import "reactjs-popup/dist/index.css";
-export default function PaginalInicialU() {
+import { FiLogOut } from "react-icons/fi";
+import { VscAccount } from "react-icons/vsc";
+import Dock from "../../componentesMenu/Dock";
+import PillNav from "../../componentesMenu/PillNav";
+
+export default function VagasUsuario() {
+  const [vagas, setVagas] = useState([]);
+  const [erro, setErro] = useState(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const handleDashboard = () => {
-    navigate("/dashboard");
+  const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
+
+  useEffect(() => {
+    const fetchVagas = async () => {
+      try {
+        if (!usuario) {
+          navigate("/login");
+          return null;
+        }
+        const resposta = await fetch(`http://localhost:3000/vagas/listarTodas`);
+        if (!resposta.ok) throw new Error("Erro ao buscar vagas");
+        const dados = await resposta.json();
+        const vagasComEmpresa = await Promise.all(
+          dados.map(async (vaga) => {
+            const resUsuario = await fetch(
+              `http://localhost:3000/usuarios/buscarPorId/${vaga.id_usuario}`
+            );
+            if (!resUsuario.ok)
+              return { ...vaga, nome_empresa: "Desconhecida" };
+            const usuarioDados = await resUsuario.json();
+            return { ...vaga, nome_empresa: usuarioDados.nome };
+          })
+        );
+        console.log("Empresa da vaga:", vagas.nome_empresa);
+        setVagas(vagasComEmpresa);
+      } catch (error) {
+        setErro("Erro ao buscar vagas.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchVagas();
+  }, []);
+
+  const handleInscrever = async (id_vaga) => {
+    try {
+      const respostaCurriculo = await fetch(
+        `http://localhost:3000/curriculos/buscarPorUsuario/${usuario.id}`
+      );
+      const id_curriculo = respostaCurriculo.id_curriculo;
+      if (!respostaCurriculo.ok) {
+        alert("Erro: Currículo não encontrado para este usuário.");
+        return;
+      }
+
+      const curriculo = await respostaCurriculo.json();
+
+      console.log("Resposta do servidor:", curriculo);
+      const resposta = await fetch(`http://localhost:3000/candidaturas/criar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id_vaga: id_vaga,
+          id_curriculo: curriculo.id_curriculo,
+        }),
+      });
+      alert(id_vaga + " " + curriculo.id_curriculo);
+
+      const dados = await resposta.json();
+      alert(dados.id_curriculo);
+      if (!resposta.ok) {
+        alert(`Erro: ${dados.mensagem || " Falha ao se inscrever."}`);
+        return;
+      }
+
+      alert("Inscrição realizada com sucesso!");
+    } catch (error) {
+      console.error("Erro ao se inscrever:", error);
+      alert("Erro ao se inscrever na vaga.");
+    }
   };
 
-  const handleCandidaturas = () => {
-    navigate("/candidaturaUsuario");
+  const handleCandidaturas = () => navigate("/candidaturaUsuario");
+  const handleRelatorios = () => navigate("/relatorios");
+  const handlePerfil = () => navigate("/perfilU");
+  const handleLogout = () => {
+    localStorage.removeItem("usuarioLogado");
+    setTimeout(() => navigate("/"), 500);
   };
 
-  const handleRelatorios = () => {
-    navigate("/relatorios");
-  };
-
-  const handleDetalhes = () => {
-    navigate("/detalhes");
-  };
-
-  const handlePerfil = () => {
-    navigate("/perfilU");
-  };
+  const items = [
+    {
+      icon: <VscAccount size={18} />,
+      label: "Perfil",
+      onClick: () => handlePerfil(),
+    },
+    {
+      icon: <FiLogOut size={18} />,
+      label: "Sair",
+      onClick: () => handleLogout(),
+    },
+  ];
 
   return (
     <PaginaContainer>
       {/* NAVBAR */}
-      <BarraNavegacao>
-        <LogoContainer>
-          <ImagemLogo src={Logo} alt="Logo" />
-        </LogoContainer>
-
-        <ItensNav>
-          <BotaoNav ativo>Vagas</BotaoNav>
-          <BotaoNav onClick={handleRelatorios}>Relatórios</BotaoNav>
-          <BotaoNav onClick={handleCandidaturas}>Candidaturas</BotaoNav>
-        </ItensNav>
-
-        <InfoUsuario onClick={handlePerfil}>
-          <NomeUsuario>Usuário</NomeUsuario>
-          <Avatar>👤</Avatar>
-        </InfoUsuario>
-      </BarraNavegacao>
+      <BarraNav>
+        <PillNav
+          logo={Logo}
+          logoAlt="Company Logo"
+          items={[
+            { label: "Home", href: "/vagasU" },
+            { label: "Relatórios", href: "/relatorios" },
+            { label: "Candidaturas", href: "/candidaturaUsuario" },
+          ]}
+          activeHref="/vagasU"
+          className="custom-nav"
+          ease="power2.easeOut"
+          baseColor="#7000d8"
+          pillColor="#ffffff"
+          hoveredPillTextColor="#ffffff"
+          pillTextColor="#000000"
+        />
+      </BarraNav>
 
       {/* CONTEÚDO */}
       <Conteudo>
-        {/* SIDEBAR */}
         <BarraLateral>
           <TituloSidebar>Filtrar</TituloSidebar>
-          <Entrada type="text" placeholder="🔍" />
+          <Entrada type="text" placeholder="🔍 Pesquisar vaga" />
           <Selecao>
             <option>Área</option>
           </Selecao>
@@ -63,20 +145,27 @@ export default function PaginalInicialU() {
           <ControleDeslizante type="range" />
         </BarraLateral>
 
-        {/* VAGAS */}
         <ListaVagas>
-          {[1, 2, 3].map((_, index) => (
-            <CartaoVaga key={index}>
-              <TituloVaga>*******</TituloVaga>
-              <DescricaoVaga>********</DescricaoVaga>
-              <CaixaSalario>R$ *****</CaixaSalario>
+          {loading && <p>Carregando vagas...</p>}
+          {erro && <p>{erro}</p>}
+          {!loading && vagas.length === 0 && <p>Nenhuma vaga encontrada.</p>}
+
+          {vagas.map((vaga) => (
+            <CartaoVaga key={vaga.id_vaga}>
+              <TituloVaga>{vaga.titulo}</TituloVaga>
+              <DescricaoVaga>{vaga.descricao}</DescricaoVaga>
+              <p>
+                <b>Empresa:</b> {vaga.nome_empresa}
+              </p>
+              <CaixaSalario>R$ {vaga.salario}</CaixaSalario>
+
               <Popup
                 trigger={<BotaoDetalhes>Ver detalhes</BotaoDetalhes>}
                 modal
                 nested
                 overlayStyle={{ background: "rgba(0, 0, 0, 0.5)" }}
                 contentStyle={{
-                  background: "transparent", // 🔹 remove fundo branco
+                  background: "transparent",
                   border: "none",
                   boxShadow: "none",
                   padding: 0,
@@ -85,38 +174,35 @@ export default function PaginalInicialU() {
                 {(close) => (
                   <div style={styles.container}>
                     <div style={styles.card}>
-                      {/* Botão Fechar */}
                       <span style={styles.fechar} onClick={close}>
                         Fechar ✖
                       </span>
-
-                      {/* Título */}
-                      <h1 style={styles.titulo}>Lorem Ipsum</h1>
-
-                      {/* Subtítulo */}
+                      <h1 style={styles.titulo}>{vaga.titulo}</h1>
                       <h3 style={styles.subtitulo}>Informações da Vaga</h3>
 
-                      {/* Caixa de texto */}
                       <div style={styles.caixaTexto}>
                         <p>
-                          Lorem ipsum dolor sit amet, consectetur adipiscing
-                          elit. Ut pellentesque sapien ac lorem accumsan
-                          venenatis. Maecenas non erat erat. Morbi et facilisis
-                          leo. Cras dignissim velit non condimentum. Suspendisse
-                          id lacus justo. Sed scelerisque bibendum massa, ut
-                          commodo nibh bibendum non. Suspendisse consectetur
-                          arcu sed odio ullamcorper. Nam euismod augue eu
-                          euismod. Duis scelerisque facilisis sodales. Duis
-                          vestibulum, erat non vestibulum malesuada, nibh magna
-                          molestie enim, sed lacinia eros sapien nec elit. Nulla
-                          hendrerit felis neque massa placerat, vitae viverra
-                          elit rhoncus. Maecenas vel arcu pharetra, placerat
-                          mauris eu, pharetra dui. Sed consequat eleifend lacus
-                          vel convallis. Praesent eu hendrerit ante, sit amet
-                          vehicula mi. Nulla eget dolor erat.
+                          <b>Descrição:</b> {vaga.descricao}
+                        </p>
+                        <p>
+                          <b>Requisitos:</b> {vaga.requisitos}
+                        </p>
+                        <p>
+                          <b>Setor:</b> {vaga.setor}
+                        </p>
+                        <p>
+                          <b>Salário:</b> R$ {vaga.salario}
+                        </p>
+                        <p>
+                          <b>Empresa:</b> {vaga.nome_empresa}
                         </p>
                       </div>
-                      <BotaoInscrever>Increver-se</BotaoInscrever>
+
+                      <BotaoInscrever
+                        onClick={() => handleInscrever(vaga.id_vaga)}
+                      >
+                        Inscrever-se
+                      </BotaoInscrever>
                     </div>
                   </div>
                 )}
@@ -125,10 +211,20 @@ export default function PaginalInicialU() {
           ))}
         </ListaVagas>
       </Conteudo>
+
+      <DockWrapper>
+        <Dock
+          items={items}
+          panelHeight={68}
+          baseItemSize={50}
+          magnification={70}
+        />
+      </DockWrapper>
     </PaginaContainer>
   );
 }
 
+/* ---------- ESTILOS ---------- */
 const PaginaContainer = styled.div`
   font-family: Arial, sans-serif;
   background-color: #efefff;
@@ -173,6 +269,13 @@ const BotaoNav = styled.button`
     background-color: #000;
   }
 `;
+const BarraNav = styled.div`
+  background-color: rgba(112, 0, 216, 0);
+  display: flex;
+  align-items: center;
+  padding: 10px 30px;
+  justify-content: center;
+`;
 
 const InfoUsuario = styled.div`
   display: flex;
@@ -196,6 +299,7 @@ const Avatar = styled.div`
 const Conteudo = styled.div`
   display: flex;
   padding: 30px;
+  margin-top: 40px;
 `;
 
 const BarraLateral = styled.div`
@@ -251,7 +355,6 @@ const CartaoVaga = styled.div`
   padding: 20px;
   border-radius: 8px;
   box-shadow: 2px 2px 5px #ccc;
-
   position: relative;
 `;
 
@@ -274,15 +377,6 @@ const CaixaSalario = styled.div`
   font-weight: bold;
 `;
 
-const BotaoInscrever = styled.button`
-  border-radius: 15px;
-  border: 0;
-  font-size: 20px;
-  padding: 10px 30px;
-  background-color: #b783ff;
-  color: white;
-`;
-
 const BotaoDetalhes = styled.button`
   margin-top: 10px;
   padding: 6px 12px;
@@ -291,6 +385,24 @@ const BotaoDetalhes = styled.button`
   background-color: #fff;
   cursor: pointer;
 `;
+
+const BotaoInscrever = styled.button`
+  border-radius: 15px;
+  border: 0;
+  font-size: 18px;
+  padding: 10px 25px;
+  background-color: #b783ff;
+  color: white;
+  cursor: pointer;
+  margin-top: 10px;
+`;
+
+const DockWrapper = styled.div`
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+`;
+
 const styles = {
   container: {
     display: "flex",
@@ -333,15 +445,5 @@ const styles = {
     lineHeight: "1.5",
     marginBottom: "20px",
     textAlign: "justify",
-  },
-  botao: {
-    backgroundColor: "#8000ff",
-    color: "white",
-    padding: "12px",
-    width: "70%",
-    border: "none",
-    borderRadius: "25px",
-    fontSize: "16px",
-    cursor: "pointer",
   },
 };

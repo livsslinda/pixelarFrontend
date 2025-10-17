@@ -2,7 +2,12 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import Logo from "../../../img/logo.png";
-
+import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap-icons/font/bootstrap-icons.css";
+import PillNav from "../../componentesMenu/PillNav";
+import { FiLogOut } from "react-icons/fi";
+import { VscAccount } from "react-icons/vsc";
+import Dock from "../../componentesMenu/Dock";
 export default function Dashboard() {
   const navigate = useNavigate();
 
@@ -20,26 +25,46 @@ export default function Dashboard() {
     localStorage.removeItem("usuarioLogado");
     setTimeout(() => navigate("/"), 500);
   };
+  const BarraNav = styled.div`
+    background-color: rgba(112, 0, 216, 0);
+    display: flex;
+    align-items: center;
+    padding: 10px 30px;
+    justify-content: center;
+  `;
+  const items = [
+    {
+      icon: <VscAccount size={18} />,
+      label: "Perfil",
+      onClick: () => handlePerfil(),
+    },
+    {
+      icon: <FiLogOut size={18} />,
+      label: "Sair",
+      onClick: () => handleLogout(),
+    },
+  ];
 
   return (
     <PaginaContainer>
-      <BarraNavegacao>
-        <LogoContainer>
-          <ImagemLogo src={Logo} alt="Logo" onClick={handlePerfil} />
-        </LogoContainer>
-
-        <ItensNav>
-          <BotaoNav onClick={handleVagas}>Vagas</BotaoNav>
-          <BotaoNav ativo>Dashboard</BotaoNav>
-          <BotaoNav onClick={handleCandidatos}>Candidatos</BotaoNav>
-        </ItensNav>
-
-        <InfoUsuario>
-          <Logout onClick={handleLogout}>Sair</Logout>
-          <TextoUsuario>{usuario.nome}</TextoUsuario>
-          <Avatar onClick={handlePerfil}>👤</Avatar>
-        </InfoUsuario>
-      </BarraNavegacao>
+      <BarraNav>
+        <PillNav
+          logo={Logo}
+          logoAlt="Company Logo"
+          items={[
+            { label: "Home", href: "/vagas" },
+            { label: "Dashboard", href: "/dashboard" },
+            { label: "Candidatos", href: "/candidatos" },
+          ]}
+          activeHref="/dashboard"
+          className="custom-nav"
+          ease="power2.easeOut"
+          baseColor="#7000d8"
+          pillColor="#ffffff"
+          hoveredPillTextColor="#ffffff"
+          pillTextColor="#000000"
+        />
+      </BarraNav>
 
       {/* FILTROS */}
       <Filtros>
@@ -136,11 +161,29 @@ export default function Dashboard() {
           </Alertas>
         </PainelPequeno>
       </SecaoInferior>
+      <DockWrapper>
+        <Dock
+          items={items}
+          panelHeight={68}
+          baseItemSize={50}
+          magnification={70}
+        />
+      </DockWrapper>
     </PaginaContainer>
   );
 }
 
 /* ---------- ESTILOS ---------- */
+const DockWrapper = styled.div`
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  background: transparent;
+  z-index: 1000;
+`;
 
 const PaginaContainer = styled.div`
   font-family: Arial, sans-serif;
@@ -154,6 +197,7 @@ const Filtros = styled.div`
   margin-bottom: 30px;
   justify-content: center;
   align-items: center;
+  margin-top: 60px;
 `;
 
 const Rotulo = styled.label`

@@ -2,6 +2,8 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import Logo from "../../../img/logo.png";
+import PillNav from "../../componentesMenu/PillNav";
+import Dock from "../../componentesMenu/Dock";
 
 export default function Relatorios() {
   const navigate = useNavigate();
@@ -13,22 +15,24 @@ export default function Relatorios() {
   return (
     <PaginaContainer>
       {/* NAVBAR */}
-      <BarraNavegacao>
-        <LogoContainer>
-          <ImagemLogo src={Logo} alt="Logo" />
-        </LogoContainer>
-
-        <ItensNav>
-          <BotaoNav onClick={handleVagas}>Vagas</BotaoNav>
-          <BotaoNav ativo>Relatórios</BotaoNav>
-          <BotaoNav onClick={handleCandidaturas}>Candidaturas</BotaoNav>
-        </ItensNav>
-
-        <InfoUsuario onClick={handlePerfil}>
-          <NomeUsuario>Usuário</NomeUsuario>
-          <Avatar>👤</Avatar>
-        </InfoUsuario>
-      </BarraNavegacao>
+      <BarraNav>
+        <PillNav
+          logo={Logo}
+          logoAlt="Company Logo"
+          items={[
+            { label: "Home", href: "/vagasU" },
+            { label: "Relatórios", href: "/relatorios" },
+            { label: "Candidaturas", href: "/candidaturaUsuario" },
+          ]}
+          activeHref="/relatorios"
+          className="custom-nav"
+          ease="power2.easeOut"
+          baseColor="#7000d8"
+          pillColor="#ffffff"
+          hoveredPillTextColor="#ffffff"
+          pillTextColor="#000000"
+        />
+      </BarraNav>
 
       {/* CONTEÚDO */}
       <Conteudo>
@@ -47,6 +51,14 @@ export default function Relatorios() {
           <CaixaMetrica full>Currículos Recebidos</CaixaMetrica>
         </LinhasMetricas>
       </Conteudo>
+      <DockWrapper>
+        <Dock
+          items={items}
+          panelHeight={68}
+          baseItemSize={50}
+          magnification={70}
+        />
+      </DockWrapper>
     </PaginaContainer>
   );
 }
@@ -82,6 +94,11 @@ const ImagemLogo = styled.img`
 const ItensNav = styled.div`
   display: flex;
   gap: 15px;
+`;
+const DockWrapper = styled.div`
+  position: fixed;
+  bottom: 0;
+  width: 100%;
 `;
 
 const BotaoNav = styled.button`
@@ -159,4 +176,11 @@ const CaixaMetrica = styled.div`
   border: 1px solid #5a41ff;
   font-size: 14px;
   width: ${(props) => (props.full ? "100%" : "calc(50% - 10px)")};
+`;
+const BarraNav = styled.div`
+  background-color: rgba(112, 0, 216, 0);
+  display: flex;
+  align-items: center;
+  padding: 10px 30px;
+  justify-content: center;
 `;

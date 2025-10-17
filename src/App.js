@@ -35,7 +35,6 @@ export default function App() {
         <Route path="/perfilE" element={<PerfilE />} />
         <Route path="/cadastroE" element={<CadastroEmpresa />} />
         <Route path="/opcoesE" element={<OpcoesE />} />
-
         <Route path="/" element={<Login />} />
       </Routes>
     </BrowserRouter>

@@ -3,7 +3,12 @@ import Logo from "../../../img/logo.png";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { FaEdit } from "react-icons/fa";
-
+import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap-icons/font/bootstrap-icons.css";
+import Dock from "../../componentesMenu/Dock";
+import PillNav from "../../componentesMenu/PillNav";
+import { FiLogOut } from "react-icons/fi";
+import { VscAccount } from "react-icons/vsc";
 export default function PerfilUsuario() {
   const navigate = useNavigate();
 
@@ -15,12 +20,13 @@ export default function PerfilUsuario() {
     navigate("/candidatos");
   };
 
-  const handleVagas = () => {
-    navigate("/vagas");
+  const handleLogout = () => {
+    localStorage.removeItem("usuarioLogado");
+    setTimeout(() => navigate("/"), 500);
   };
 
   const handlePerfil = () => {
-    navigate("/perfil");
+    navigate("/perfilE");
   };
   const [resumo, setResumo] = useState(
     "Desenvolvedor de software com mais de 5 anos de experiência em desenvolvimento web e móvel. Apaixonado por criar aplicações eficientes e escaláveis utilizando tecnologias modernas."
@@ -34,26 +40,39 @@ export default function PerfilUsuario() {
   const handleSalvar = () => {
     setEditando(false);
   };
-
+  const items = [
+    {
+      icon: <VscAccount size={18} />,
+      label: "Perfil",
+      onClick: () => handlePerfil(),
+    },
+    {
+      icon: <FiLogOut size={18} />,
+      label: "Sair",
+      onClick: () => handleLogout(),
+    },
+  ];
   return (
     <PaginaContainer>
       {/* NAVBAR */}
-      <BarraNavegacao>
-        <LogoContainer>
-          <ImagemLogo src={Logo} alt="Logo" />
-        </LogoContainer>
-
-        <ItensNav>
-          <BotaoNav onClick={handleVagas}>Vagas</BotaoNav>
-          <BotaoNav onClick={handleDashboard}>Dashboard</BotaoNav>
-          <BotaoNav onClick={handleCandidatos}>Candidatos</BotaoNav>
-        </ItensNav>
-
-        <InfoUsuario onClick={handlePerfil}>
-          <NomeUsuario>Usuário</NomeUsuario>
-          <Avatar>👤</Avatar>
-        </InfoUsuario>
-      </BarraNavegacao>
+      <BarraNav>
+        <PillNav
+          logo={Logo}
+          logoAlt="Company Logo"
+          items={[
+            { label: "Home", href: "/vagas" },
+            { label: "Dashboard", href: "/dashboard" },
+            { label: "Candidatos", href: "/candidatos" },
+          ]}
+          activeHref="/perfilE"
+          className="custom-nav"
+          ease="power2.easeOut"
+          baseColor="#7000d8"
+          pillColor="#ffffff"
+          hoveredPillTextColor="#ffffff"
+          pillTextColor="#000000"
+        />
+      </BarraNav>
 
       {/* CONTEÚDO PERFIL */}
       <Conteudo>
@@ -88,6 +107,14 @@ export default function PerfilUsuario() {
           )}
         </ResumoBox>
       </Conteudo>
+      <DockWrapper>
+        <Dock
+          items={items}
+          panelHeight={68}
+          baseItemSize={50}
+          magnification={70}
+        />
+      </DockWrapper>
     </PaginaContainer>
   );
 }
@@ -103,6 +130,23 @@ const TextareaEdit = styled.textarea`
   margin: 0 auto; /* centraliza horizontalmente */
   display: block; /* necessário para centralização */
   resize: vertical;
+`;
+const BarraNav = styled.div`
+  background-color: rgba(112, 0, 216, 0);
+  display: flex;
+  align-items: center;
+  padding: 10px 30px;
+  justify-content: center;
+`;
+const DockWrapper = styled.div`
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  background: transparent;
+  z-index: 1000;
 `;
 
 const BotaoSalvar = styled.button`

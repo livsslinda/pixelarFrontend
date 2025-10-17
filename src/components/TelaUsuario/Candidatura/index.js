@@ -254,6 +254,10 @@ export default function CandidaturaUsuario() {
   const navigate = useNavigate();
   const [abaAtiva, setAbaAtiva] = useState("vagas");
 
+  const [vagas, setVagas] = useState([]);
+  const [erro, setErro] = useState(null);
+  const [loading, setLoading] = useState(true);
+
   const handleCandidaturas = () => {
     navigate("/candidaturaUsuario");
   };
@@ -272,7 +276,6 @@ export default function CandidaturaUsuario() {
 
   return (
     <PaginaContainer>
-
       <BarraNavegacao>
         <LogoContainer>
           <ImagemLogo src={Logo} alt="Logo" />
