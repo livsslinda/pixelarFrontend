@@ -4,6 +4,8 @@ import styled from "styled-components";
 import Logo from "../../../img/logo.png";
 import PillNav from "../../componentesMenu/PillNav";
 import Dock from "../../componentesMenu/Dock";
+import { FiLogOut } from "react-icons/fi";
+import { VscAccount } from "react-icons/vsc";
 
 export default function Relatorios() {
   const navigate = useNavigate();
@@ -11,7 +13,23 @@ export default function Relatorios() {
   const handleCandidaturas = () => navigate("/candidaturaUsuario");
   const handleVagas = () => navigate("/vagasU");
   const handlePerfil = () => navigate("/perfilU");
+  const handleLogout = () => {
+    localStorage.removeItem("usuarioLogado");
+    setTimeout(() => navigate("/"), 500);
+  };
 
+  const items = [
+    {
+      icon: <VscAccount size={18} />,
+      label: "Perfil",
+      onClick: () => handlePerfil(),
+    },
+    {
+      icon: <FiLogOut size={18} />,
+      label: "Sair",
+      onClick: () => handleLogout(),
+    },
+  ];
   return (
     <PaginaContainer>
       {/* NAVBAR */}

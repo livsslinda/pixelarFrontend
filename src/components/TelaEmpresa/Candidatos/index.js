@@ -11,6 +11,7 @@ import { VscAccount } from "react-icons/vsc";
 import Dock from "../../componentesMenu/Dock";
 import Popup from "reactjs-popup";
 import "reactjs-popup/dist/index.css";
+import { IoMdClose } from "react-icons/io";
 
 const CartaoCandidato = styled.div`
   display: flex;
@@ -386,6 +387,9 @@ const DockWrapper = styled.div`
   z-index: 1000;
 `;
 
+const Corpo = styled.div`
+  background-color: #c4caffff;
+`;
 const BarraNav = styled.div`
   background-color: rgba(112, 0, 216, 0);
   display: flex;
@@ -479,144 +483,151 @@ export default function Candidatos() {
 
   return (
     <>
-      <BarraNav>
-        <DockWrapper>
-          <Dock
-            items={items}
-            panelHeight={68}
-            baseItemSize={50}
-            magnification={70}
+      <Corpo>
+        <BarraNav>
+          <DockWrapper>
+            <Dock
+              items={items}
+              panelHeight={68}
+              baseItemSize={50}
+              magnification={70}
+            />
+          </DockWrapper>
+          <PillNav
+            logo={Logo}
+            logoAlt="Company Logo"
+            items={[
+              { label: "Home", href: "/vagas" },
+              { label: "Dashboard", href: "/dashboard" },
+              { label: "Candidatos", href: "/candidatos" },
+            ]}
+            activeHref="/candidatos"
+            className="custom-nav"
+            ease="power2.easeOut"
+            baseColor="#7000d8"
+            pillColor="#ffffff"
+            hoveredPillTextColor="#ffffff"
+            pillTextColor="#000000"
           />
-        </DockWrapper>
-        <PillNav
-          logo={Logo}
-          logoAlt="Company Logo"
-          items={[
-            { label: "Home", href: "/vagas" },
-            { label: "Dashboard", href: "/dashboard" },
-            { label: "Candidatos", href: "/candidatos" },
-          ]}
-          activeHref="/candidatos"
-          className="custom-nav"
-          ease="power2.easeOut"
-          baseColor="#7000d8"
-          pillColor="#ffffff"
-          hoveredPillTextColor="#ffffff"
-          pillTextColor="#000000"
-        />
-      </BarraNav>
-      <Container>
-        <BarraLateral>
-          {/* LISTA DE VAGAS */}
-          <ListaVagas>
-            {loading ? (
-              <CartaoVaga>Carregando...</CartaoVaga>
-            ) : erro ? (
-              <CartaoVaga>{erro}</CartaoVaga>
-            ) : vagas.length === 0 ? (
-              <CartaoVaga>Nenhuma vaga encontrada</CartaoVaga>
-            ) : (
-              vagas.map((vaga) => (
-                <CartaoVaga key={vaga.id_vaga}>{vaga.titulo}</CartaoVaga>
-              ))
-            )}
-          </ListaVagas>
+        </BarraNav>
+        <Container>
+          <BarraLateral>
+            {/* LISTA DE VAGAS */}
+            <ListaVagas>
+              {loading ? (
+                <CartaoVaga>Carregando...</CartaoVaga>
+              ) : erro ? (
+                <CartaoVaga>{erro}</CartaoVaga>
+              ) : vagas.length === 0 ? (
+                <CartaoVaga>Nenhuma vaga encontrada</CartaoVaga>
+              ) : (
+                vagas.map((vaga) => (
+                  <CartaoVaga key={vaga.id_vaga}>{vaga.titulo}</CartaoVaga>
+                ))
+              )}
+            </ListaVagas>
 
-          <ConteudoLateral>
-            <Titulo>Candidatos</Titulo>
-            {loading ? (
-              <p>Carregando...</p>
-            ) : erro ? (
-              <p>{erro}</p>
-            ) : candidatos.length === 0 ? (
-              <p>Nenhum candidato encontrado</p>
-            ) : (
-              candidatos.map((cand) => (
-                <CartaoCandidato key={cand.id_candidatura}>
-                  <InfoCandidato>
-                    <FotoCandidato
-                      src={
-                        cand.foto ||
-                        "https://cdn-icons-png.flaticon.com/512/149/149071.png"
-                      }
-                      alt={cand.nome}
-                    />
-                    <NomePontuacao>
-                      <Nome>{cand.nome}</Nome>
-                      <Pontuacao2>
-                        Pontuação: {cand.pontuacao || "N/A"}
-                      </Pontuacao2>
-                    </NomePontuacao>
-                  </InfoCandidato>
+            <ConteudoLateral>
+              <Titulo>Candidatos</Titulo>
+              {loading ? (
+                <p>Carregando...</p>
+              ) : erro ? (
+                <p>{erro}</p>
+              ) : candidatos.length === 0 ? (
+                <p>Nenhum candidato encontrado</p>
+              ) : (
+                candidatos.map((cand) => (
+                  <CartaoCandidato key={cand.id_candidatura}>
+                    <InfoCandidato>
+                      <FotoCandidato
+                        src={
+                          cand.foto ||
+                          "https://cdn-icons-png.flaticon.com/512/149/149071.png"
+                        }
+                        alt={cand.nome}
+                      />
+                      <NomePontuacao>
+                        <Nome>{cand.nome}</Nome>
+                        <Pontuacao2>
+                          Pontuação: {cand.pontuacao || "N/A"}
+                        </Pontuacao2>
+                      </NomePontuacao>
+                    </InfoCandidato>
 
-                  <Acoes>
-                    <Popup
-                      trigger={
-                        <IconeAcao>
-                          <FaPlus />
-                        </IconeAcao>
-                      }
-                      modal
-                      nested
-                      overlayStyle={{ background: "rgba(0,0,0,0.6)" }}
-                      contentStyle={{
-                        background: "transparent",
-                        border: "none",
-                        boxShadow: "none",
-                        padding: 0,
-                      }}
-                    >
-                      {(close) => (
-                        <PopupCard>
-                          <Fechar onClick={close}>✖</Fechar>
-                          <h2>Detalhe de Candidatura</h2>
-                          <InfoBox>
-                            <p>
-                              Status: <b>{cand.status || "Em andamento"}</b>
-                            </p>
-                            <p>Vaga: {cand.vagatitulo || "XXXXX"}</p>
-                            <p>Data: {cand.data || "Sem data"}</p>
-                            <p>Pontuação: {cand.pontuacao || "N/A"}</p>
-                          </InfoBox>
-                          <BotaoEditar>Editar</BotaoEditar>
-                        </PopupCard>
-                      )}
-                    </Popup>
+                    <Acoes>
+                      <Popup
+                        trigger={
+                          <IconeAcao>
+                            <FaPlus />
+                          </IconeAcao>
+                        }
+                        modal
+                        nested
+                        overlayStyle={{ background: "rgba(0,0,0,0.6)" }}
+                        contentStyle={{
+                          background: "transparent",
+                          border: "none",
+                          boxShadow: "none",
+                          padding: 0,
+                        }}
+                      >
+                        {(close) => (
+                          <PopupCard>
+                            <Fechar onClick={close}>
+                              <IoMdClose size={30} />
+                            </Fechar>
+                            <h2>Detalhe de Candidatura</h2>
+                            <InfoBox>
+                              <p>
+                                Status: <b>{cand.status || "Em andamento"}</b>
+                              </p>
+                              <p>Vaga: {cand.vagatitulo || "XXXXX"}</p>
+                              <p>Data: {cand.data || "Sem data"}</p>
+                              <p>Pontuação: {cand.pontuacao || "N/A"}</p>
+                            </InfoBox>
+                            <BotaoEditar>Editar</BotaoEditar>
+                          </PopupCard>
+                        )}
+                      </Popup>
 
-                    <IconeAcao>
-                      <FaCommentAlt />
-                    </IconeAcao>
-                  </Acoes>
-                </CartaoCandidato>
-              ))
-            )}
-          </ConteudoLateral>
-        </BarraLateral>
+                      <IconeAcao>
+                        <FaCommentAlt />
+                      </IconeAcao>
+                    </Acoes>
+                  </CartaoCandidato>
+                ))
+              )}
+            </ConteudoLateral>
+          </BarraLateral>
 
-        <AreaChat>
-          <Chat>
-            <CabecalhoChat>
-              <FotoChat src="https://randomuser.me/api/portraits/women/10.jpg" />
-              <NomeChat>Maria</NomeChat>
-            </CabecalhoChat>
+          <AreaChat>
+            <Chat>
+              <CabecalhoChat>
+                <FotoChat src="https://randomuser.me/api/portraits/women/10.jpg" />
+                <NomeChat>Maria</NomeChat>
+              </CabecalhoChat>
 
-            <Mensagens>
-              <BolhaMensagem lado="esquerda">Olá, tudo bem?</BolhaMensagem>
-              <BolhaMensagem lado="direita">
-                Oi, estou bem e você?
-              </BolhaMensagem>
-              <BolhaMensagem lado="esquerda">
-                Também estou bem, obrigado!
-              </BolhaMensagem>
-            </Mensagens>
+              <Mensagens>
+                <BolhaMensagem lado="esquerda">Olá, tudo bem?</BolhaMensagem>
+                <BolhaMensagem lado="direita">
+                  Oi, estou bem e você?
+                </BolhaMensagem>
+                <BolhaMensagem lado="esquerda">
+                  Também estou bem, obrigado!
+                </BolhaMensagem>
+              </Mensagens>
 
-            <CampoMensagem>
-              <InputMensagem type="text" placeholder="Digite sua mensagem..." />
-              <BotaoEnviar>&gt;</BotaoEnviar>
-            </CampoMensagem>
-          </Chat>
-        </AreaChat>
-      </Container>
+              <CampoMensagem>
+                <InputMensagem
+                  type="text"
+                  placeholder="Digite sua mensagem..."
+                />
+                <BotaoEnviar>&gt;</BotaoEnviar>
+              </CampoMensagem>
+            </Chat>
+          </AreaChat>
+        </Container>
+      </Corpo>
     </>
   );
 }

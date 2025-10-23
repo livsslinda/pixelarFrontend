@@ -9,6 +9,8 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 import PillNav from "../../componentesMenu/PillNav";
 import { FiLogOut } from "react-icons/fi";
 import { VscAccount } from "react-icons/vsc";
+import { IoMdClose } from "react-icons/io";
+import { motion } from "framer-motion";
 
 import Dock from "../../componentesMenu/Dock";
 
@@ -319,7 +321,7 @@ export default function PaginaInicial() {
               <div style={styles.container}>
                 <div style={styles.card2}>
                   <h2 style={styles.fechar} onClick={close}>
-                    Fechar ✖
+                    <IoMdClose size={30} />
                   </h2>
                   <h2 style={{ marginBottom: "15px" }}>Nova Vaga</h2>
                   <form onSubmit={(e) => handleCriarVaga(e, close)}>
@@ -408,7 +410,7 @@ export default function PaginaInicial() {
                             style={styles.fechar}
                             onClick={handleCancelarEdicao}
                           >
-                            Fechar ✖
+                            <IoMdClose size={30} />
                           </h2>
                           <h2 style={{ marginBottom: "15px" }}>Editar Vaga</h2>
                           <form onSubmit={handleSalvarEdicao}>
@@ -507,7 +509,7 @@ export default function PaginaInicial() {
                   <div style={styles.container}>
                     <div style={styles.card}>
                       <h2 style={styles.fechar} onClick={close}>
-                        Fechar ✖
+                        <IoMdClose size={30} />
                       </h2>
                       <h1 style={styles.titulo}>{vaga.titulo}</h1>
                       <h3 style={styles.subtitulo}>Informações da Vaga</h3>

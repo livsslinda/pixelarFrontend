@@ -203,7 +203,6 @@ export default function Login() {
           "usuarioLogado",
           JSON.stringify({
             ...dados.usuario,
-            token: dados.token,
           })
         );
 

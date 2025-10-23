@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Logo from "../../../img/logo.png";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
@@ -9,9 +9,18 @@ import Dock from "../../componentesMenu/Dock";
 import PillNav from "../../componentesMenu/PillNav";
 import { FiLogOut } from "react-icons/fi";
 import { VscAccount } from "react-icons/vsc";
-export default function PerfilUsuario() {
-  const navigate = useNavigate();
+import { FaGear } from "react-icons/fa6";
+import Popup from "reactjs-popup";
+import "reactjs-popup/dist/index.css";
+import { IoMdClose } from "react-icons/io";
+import { AiFillFileText } from "react-icons/ai";
+import { motion } from "framer-motion";
 
+export default function PerfilUsuario() {
+  const [descricao_perfil, setDescricao_perfil] = useState("");
+
+  const navigate = useNavigate();
+  const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
   const handleDashboard = () => {
     navigate("/dashboard");
   };
@@ -52,6 +61,71 @@ export default function PerfilUsuario() {
       onClick: () => handleLogout(),
     },
   ];
+  useEffect(() => {
+    const fetchDescricaoPerfil = async () => {
+      try {
+        const resposta = await fetch(
+          `http://localhost:3000/usuarios/buscarDescricao/${usuario.id}`
+        );
+        if (resposta.ok) {
+          const dados = await resposta.json();
+          setDescricao_perfil(dados.descricao_perfil);
+        } else {
+          console.error("Erro ao buscar descrição do perfil");
+        }
+      } catch (error) {
+        console.error("Erro na requisição:", error);
+      }
+    };
+
+    fetchDescricaoPerfil();
+  }, [usuario.id]);
+  const handleSalvarDescricao = async () => {
+    try {
+      const resposta = await fetch(
+        `http://localhost:3000/usuarios/atualizarDescricao/${usuario.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ descricao_perfil: descricao_perfil.trim() }),
+        }
+      );
+
+      const dados = await resposta.json();
+      if (resposta.ok) {
+        console.log(dados); // veja se usuario.descricao_perfil existe
+        setDescricao_perfil(dados.usuario.descricao_perfil || descricao_perfil);
+        setEditando(false);
+      } else {
+        console.error("Erro ao atualizar descrição do perfil", dados);
+      }
+    } catch (error) {
+      console.error("Erro na requisição:", error);
+    }
+  };
+
+  const [cargo, setCargo] = useState("");
+
+  useEffect(() => {
+    const fetchCargo = async () => {
+      try {
+        const resposta = await fetch(
+          `http://localhost:3000/usuarios/buscarPorId/${usuario.id}`
+        );
+        if (resposta.ok) {
+          const dados = await resposta.json();
+          setCargo(dados);
+        }
+      } catch (error) {
+        console.error("Erro ao buscar usuário por ID:", error);
+      }
+    };
+
+    fetchCargo();
+  }, [usuario.id]);
+
   return (
     <PaginaContainer>
       {/* NAVBAR */}
@@ -81,8 +155,51 @@ export default function PerfilUsuario() {
             src="https://br.web.img2.acsta.net/pictures/18/09/17/22/41/1680893.jpg"
             alt="Foto de perfil"
           />
-          <Nome>Rihanna Silva</Nome>
-          <Cargo>Desenvolvedor de Software</Cargo>
+          <Nome>{usuario.nome}</Nome>
+          <Cargo>{cargo.cargo}</Cargo>
+          <Botoes>
+            <Popup
+              trigger={
+                <BotaoConfig>
+                  <Config>
+                    Configurações {"  "}
+                    <FaGear size={20} />
+                  </Config>
+                </BotaoConfig>
+              }
+              modal
+              nested
+              overlayStyle={{ background: "rgba(0,0,0,0.5)" }}
+              contentStyle={{
+                background: "transparent",
+                border: "none",
+                boxShadow: "none",
+                padding: 0,
+              }}
+            >
+              {(close) => (
+                <div style={styles.container}>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                    style={styles.card2}
+                  >
+                    <h2 style={styles.fechar} onClick={close}>
+                      <IoMdClose size={30} />
+                    </h2>
+                    <h2 style={{ marginBottom: "15px" }}>Configurações</h2>
+                  </motion.div>
+                </div>
+              )}
+            </Popup>
+            {/* <BotaoConfig>
+              {" "}
+              <h6>Atualizar Currículo</h6>
+              <AiFillFileText size={30} />
+            </BotaoConfig> */}
+          </Botoes>
         </ProfileContainer>
 
         <ResumoBox>
@@ -90,20 +207,22 @@ export default function PerfilUsuario() {
             Descrição
             <FaEdit
               style={{ marginLeft: 10, cursor: "pointer", fontSize: 16 }}
-              onClick={handleEditar}
+              onClick={() => setEditando(true)}
             />
           </ResumoTitulo>
 
           {editando ? (
             <>
               <TextareaEdit
-                value={resumo}
-                onChange={(e) => setResumo(e.target.value)}
+                value={descricao_perfil}
+                onChange={(e) => setDescricao_perfil(e.target.value)}
               />
-              <BotaoSalvar onClick={handleSalvar}>Salvar</BotaoSalvar>
+              <BotaoSalvar onClick={handleSalvarDescricao}>Salvar</BotaoSalvar>
             </>
           ) : (
-            <ResumoTexto>{resumo}</ResumoTexto>
+            <ResumoTexto>
+              {descricao_perfil || "Sem descrição cadastrada"}
+            </ResumoTexto>
           )}
         </ResumoBox>
       </Conteudo>
@@ -235,6 +354,7 @@ const Conteudo = styled.div`
   flex-direction: column;
   align-items: center;
   padding: 40px;
+  margin-top: 20px;
 `;
 
 const ProfileContainer = styled.div`
@@ -274,10 +394,21 @@ const BotaoCurriculo = styled.button`
     color: white;
   }
 `;
-
+const Config = styled.p`
+  font-size: 14px;
+  margin-right: 8px;
+`;
+const Botoes = styled.div`
+  display: flex;
+  justify-content: center;
+  flex-direction: row;
+  gap: 10px;
+  margin-top: 15px;
+`;
 /* -------- RESUMO -------- */
 const ResumoBox = styled.div`
-  margin-top: 30px;
+  margin-top: 10px;
+  white-space: pre-wrap;
   border: 1px solid #aaa;
   padding: 20px;
   border-radius: 8px;
@@ -295,3 +426,84 @@ const ResumoTexto = styled.p`
   font-size: 15px;
   line-height: 1.6;
 `;
+
+const BotaoConfig = styled.div`
+  top: 20px;
+  right: 20px;
+  cursor: pointer;
+  font-size: 20px;
+  backround-color: #b188ff;
+  margin-bottom: 0;
+`;
+const styles = {
+  container: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  card: {
+    background: "linear-gradient(to bottom right, #210892, #563881)",
+    borderRadius: "15px",
+    padding: "30px",
+    width: "500px",
+    textAlign: "center",
+    color: "white",
+    position: "relative",
+  },
+  card2: {
+    background: "linear-gradient(to bottom right, #210892, #563881)",
+    borderRadius: "15px",
+    padding: "70px",
+    width: "900px",
+    textAlign: "center",
+    color: "white",
+    position: "relative",
+  },
+  card: {
+    background: "linear-gradient(to bottom right, #210892, #563881)",
+    borderRadius: "15px",
+    padding: "30px",
+    width: "500px",
+    textAlign: "center",
+    color: "white",
+    position: "relative",
+  },
+  fechar: {
+    position: "absolute",
+    top: "10px",
+    right: "15px",
+    fontSize: "12px",
+    color: "lime",
+    cursor: "pointer",
+  },
+  titulo: {
+    fontSize: "28px",
+    marginBottom: "5px",
+  },
+  subtitulo: {
+    fontSize: "14px",
+    fontWeight: "normal",
+
+    marginBottom: "10px",
+  },
+  caixaTexto: {
+    backgroundColor: "white",
+    color: "black",
+    padding: "15px",
+    borderRadius: "8px",
+    fontSize: "12px",
+    lineHeight: "1.5",
+    marginBottom: "20px",
+    textAlign: "justify",
+  },
+  botao: {
+    backgroundColor: "#8000ff",
+    color: "white",
+    padding: "12px",
+    width: "70%",
+    border: "none",
+    borderRadius: "25px",
+    fontSize: "16px",
+    cursor: "pointer",
+  },
+};

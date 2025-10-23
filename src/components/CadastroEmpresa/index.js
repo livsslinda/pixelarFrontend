@@ -6,6 +6,7 @@ export default function CadastroUsuario() {
   const [cpf_cnpj, setCnpj] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [cargo, setCargo] = useState("");
   const [erro, setErro] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -26,7 +27,7 @@ export default function CadastroUsuario() {
         headers: {
           "Content-type": "application/json",
         },
-        body: JSON.stringify({ nome, email, cpf_cnpj, senha }),
+        body: JSON.stringify({ nome, email, cpf_cnpj, senha, cargo }),
       });
 
       console.log("Resposta do servidor:", resposta);
@@ -93,6 +94,19 @@ export default function CadastroUsuario() {
               type="text"
               placeholder="Digite seu CNPJ..."
               onChange={(e) => setCnpj(e.target.value)}
+              required
+            />
+          </div>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Cargo</label>
+            <input
+              id="cargo"
+              name="cargo"
+              value={cargo}
+              style={styles.input}
+              type="text"
+              placeholder="Digite seu cargo..."
+              onChange={(e) => setCargo(e.target.value)}
               required
             />
           </div>

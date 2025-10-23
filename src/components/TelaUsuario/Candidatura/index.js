@@ -2,6 +2,10 @@ import Logo from "../../../img/logo.png";
 import { useNavigate } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import { useState } from "react";
+import PillNav from "../../componentesMenu/PillNav";
+import Dock from "../../componentesMenu/Dock";
+import { FiLogOut } from "react-icons/fi";
+import { VscAccount } from "react-icons/vsc";
 const ContainerChat = styled.div`
   display: grid;
   grid-template-columns: 1fr 2fr; /* empresas (1/3) | chat (2/3) */
@@ -72,7 +76,6 @@ const InputMensagem = styled.input`
   width: 90%;
 `;
 
-/* ANIMAÇÃO */
 const fadeIn = keyframes`
   from {
     opacity: 0;
@@ -90,7 +93,6 @@ const PaginaContainer = styled.div`
   min-height: 100vh;
 `;
 
-/* NAVBAR */
 const BarraNavegacao = styled.div`
   background-color: #7000d8;
   display: flex;
@@ -149,28 +151,40 @@ const Avatar = styled.div`
   font-size: 18px;
 `;
 
-/* SUBMENU */
 const SubMenu = styled.div`
   background-color: #d1c4ff;
   display: flex;
   padding: 10px 30px;
   font-weight: bold;
   font-size: 18px;
+  justify-self: center;
+  border-radius: 60px;
+  margin-top: 60px;
 `;
 
 const Aba = styled.div`
-  margin-right: 30px;
+  margin-right: 20px;
   cursor: pointer;
   color: ${(props) => (props.ativo ? "#000" : "#555")};
 `;
 
-/* CONTEÚDO */
 const Conteudo = styled.div`
   padding: 5px 20px;
   animation: ${fadeIn} 0.5s ease;
 `;
+const DockWrapper = styled.div`
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+`;
+const BarraNav = styled.div`
+  background-color: rgba(112, 0, 216, 0);
+  display: flex;
+  align-items: center;
+  padding: 10px 30px;
+  justify-content: center;
+`;
 
-/* ---- VAGAS SELECIONADAS ---- */
 const GridCandidaturas = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -190,12 +204,13 @@ const CardCandidatura = styled.div`
 const TituloVaga = styled.h1`
   font-size: 20px;
 `;
-/* ---- TRIAGEM ---- */
+
 const TriagemLayout = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 30px;
   animation: ${fadeIn} 0.5s ease;
+  margin-top: 20px;
 `;
 
 const Coluna1 = styled.div`
@@ -218,7 +233,6 @@ const TituloSecao = styled.h2`
   margin-top: 5px;
 `;
 
-/* Jornadas */
 const GridJornadas = styled.div`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -242,8 +256,6 @@ const BotaoTarefa = styled.button`
   cursor: pointer;
   font-size: 12px;
 `;
-
-/* Chat */
 
 const AvatarEmpresa = styled.img`
   width: 35px;
@@ -269,31 +281,45 @@ export default function CandidaturaUsuario() {
   const handleVagas = () => {
     navigate("/vagasU");
   };
-
+  const handleLogout = () => {
+    localStorage.removeItem("usuarioLogado");
+    navigate("/");
+  };
   const handlePerfil = () => {
     navigate("/perfilU");
   };
-
+  const items = [
+    {
+      icon: <VscAccount size={18} />,
+      label: "Perfil",
+      onClick: () => handlePerfil(),
+    },
+    {
+      icon: <FiLogOut size={18} />,
+      label: "Sair",
+      onClick: () => handleLogout(),
+    },
+  ];
   return (
     <PaginaContainer>
-      <BarraNavegacao>
-        <LogoContainer>
-          <ImagemLogo src={Logo} alt="Logo" />
-        </LogoContainer>
-
-        <ItensNav>
-          <BotaoNav onClick={handleVagas}>Vagas</BotaoNav>
-          <BotaoNav onClick={handleRelatorios}>Relatórios</BotaoNav>
-          <BotaoNav ativo onClick={handleCandidaturas}>
-            Candidaturas
-          </BotaoNav>
-        </ItensNav>
-
-        <InfoUsuario onClick={handlePerfil}>
-          <NomeUsuario>Usuário</NomeUsuario>
-          <Avatar>👤</Avatar>
-        </InfoUsuario>
-      </BarraNavegacao>
+      <BarraNav>
+        <PillNav
+          logo={Logo}
+          logoAlt="Company Logo"
+          items={[
+            { label: "Home", href: "/vagasU" },
+            { label: "Relatórios", href: "/relatorios" },
+            { label: "Candidaturas", href: "/candidaturaUsuario" },
+          ]}
+          activeHref="/candidaturaUsuario"
+          className="custom-nav"
+          ease="power2.easeOut"
+          baseColor="#7000d8"
+          pillColor="#ffffff"
+          hoveredPillTextColor="#ffffff"
+          pillTextColor="#000000"
+        />
+      </BarraNav>
 
       <SubMenu>
         <Aba ativo={abaAtiva === "vagas"} onClick={() => setAbaAtiva("vagas")}>
@@ -333,7 +359,6 @@ export default function CandidaturaUsuario() {
           </>
         ) : (
           <TriagemLayout>
-            {/* Jornadas */}
             <Coluna1>
               <TituloSecao>Jornadas:</TituloSecao>
               <GridJornadas>
@@ -347,12 +372,10 @@ export default function CandidaturaUsuario() {
               </GridJornadas>
             </Coluna1>
 
-            {/* Chat */}
             <Coluna>
               <TituloSecao>Chat</TituloSecao>
 
               <ContainerChat>
-                {/* Lista de empresas */}
                 <ListaEmpresas>
                   {[1, 2, 3, 4, 5].map((i) => (
                     <EmpresaItem key={i}>
@@ -365,7 +388,6 @@ export default function CandidaturaUsuario() {
                   ))}
                 </ListaEmpresas>
 
-                {/* Caixa de chat */}
                 <ChatWrapper>
                   <ChatBox>
                     <div
@@ -393,6 +415,14 @@ export default function CandidaturaUsuario() {
           </TriagemLayout>
         )}
       </Conteudo>
+      <DockWrapper>
+        <Dock
+          items={items}
+          panelHeight={68}
+          baseItemSize={50}
+          magnification={70}
+        />
+      </DockWrapper>
     </PaginaContainer>
   );
 }
