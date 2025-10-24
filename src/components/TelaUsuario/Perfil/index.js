@@ -132,11 +132,11 @@ export default function PerfilUsuario() {
           logo={Logo}
           logoAlt="Company Logo"
           items={[
-            { label: "Home", href: "/vagas" },
-            { label: "Dashboard", href: "/dashboard" },
-            { label: "Candidatos", href: "/candidatos" },
+            { label: "Home", href: "/vagasU" },
+            { label: "Relatórios", href: "/relatorios" },
+            { label: "Candidaturas", href: "/candidaturaUsuario" },
           ]}
-          activeHref="/perfilE"
+          activeHref="/"
           className="custom-nav"
           ease="power2.easeOut"
           baseColor="#7000d8"
