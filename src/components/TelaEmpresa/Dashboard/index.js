@@ -105,13 +105,6 @@ export default function Dashboard() {
           <span>+15 esta semana</span>
         </Card>
         <Card>
-          <h3>Tempo Médio</h3>
-          <p>
-            <strong>12 dias</strong>
-          </p>
-          <span>Meta: 10 dias</span>
-        </Card>
-        <Card>
           <h3>Vagas Preenchidas</h3>
           <p>
             <strong>8</strong>

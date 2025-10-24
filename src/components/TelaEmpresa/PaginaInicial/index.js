@@ -381,115 +381,25 @@ export default function PaginaInicial() {
               <DescricaoVaga>{vaga.descricao}</DescricaoVaga>
               <CaixaSalario>R$ {vaga.salario}</CaixaSalario>
               <CaixaIcones>
-                <button
-                  title="Editar"
-                  className="btn btn-sm btn-outline-primary me-2"
-                  onClick={() => execEditar(vaga)} // só atualiza os dados e abre modal
-                >
-                  <i className="bi bi-pencil-square"></i>
-                </button>
+                {vaga.id_usuario === usuario.id && (
+                  <>
+                    <button
+                      title="Editar"
+                      className="btn btn-sm btn-outline-primary me-2"
+                      onClick={() => execEditar(vaga)}
+                    >
+                      <i className="bi bi-pencil-square"></i>
+                    </button>
 
-                {showEditModal && (
-                  <Popup
-                    open={showEditModal}
-                    modal
-                    nested
-                    onClose={handleCancelarEdicao}
-                    overlayStyle={{ background: "rgba(0, 0, 0, 0.5)" }}
-                    contentStyle={{
-                      background: "transparent",
-                      border: "none",
-                      boxShadow: "none",
-                      padding: 0,
-                    }}
-                  >
-                    {(close) => (
-                      <div style={styles.container}>
-                        <div style={styles.card2}>
-                          <h2
-                            style={styles.fechar}
-                            onClick={handleCancelarEdicao}
-                          >
-                            <IoMdClose size={30} />
-                          </h2>
-                          <h2 style={{ marginBottom: "15px" }}>Editar Vaga</h2>
-                          <form onSubmit={handleSalvarEdicao}>
-                            <InputForm
-                              type="text"
-                              value={formDados.titulo}
-                              onChange={(e) =>
-                                setFormDados({
-                                  ...formDados,
-                                  titulo: e.target.value,
-                                })
-                              }
-                              placeholder="Título"
-                              required
-                            />
-                            <InputForm
-                              type="text"
-                              value={formDados.descricao}
-                              onChange={(e) =>
-                                setFormDados({
-                                  ...formDados,
-                                  descricao: e.target.value,
-                                })
-                              }
-                              placeholder="Descrição"
-                              required
-                            />
-                            <InputForm
-                              type="text"
-                              value={formDados.requisitos}
-                              onChange={(e) =>
-                                setFormDados({
-                                  ...formDados,
-                                  requisitos: e.target.value,
-                                })
-                              }
-                              placeholder="Requisitos"
-                              required
-                            />
-                            <InputForm
-                              type="text"
-                              value={formDados.setor}
-                              onChange={(e) =>
-                                setFormDados({
-                                  ...formDados,
-                                  setor: e.target.value,
-                                })
-                              }
-                              placeholder="Setor"
-                              required
-                            />
-                            <InputForm
-                              type="number"
-                              value={formDados.salario}
-                              onChange={(e) =>
-                                setFormDados({
-                                  ...formDados,
-                                  salario: e.target.value,
-                                })
-                              }
-                              placeholder="Salário"
-                              required
-                            />
-                            <BotaoSubmit type="submit" disabled={isUpdating}>
-                              {isUpdating ? "Salvando..." : "Salvar Edição"}
-                            </BotaoSubmit>
-                          </form>
-                        </div>
-                      </div>
-                    )}
-                  </Popup>
+                    <button
+                      title="Excluir"
+                      className="btn btn-sm btn-outline-danger me-2"
+                      onClick={() => executaExcluir(vaga.id_vaga)}
+                    >
+                      <i className="bi bi-trash3-fill"></i>
+                    </button>
+                  </>
                 )}
-                <button
-                  title="Excluir"
-                  className="btn btn-sm btn-outline-danger me-2"
-                  onClick={() => executaExcluir(vaga.id_vaga)}
-                >
-                  <i className="bi bi-trash3-fill"></i>
-                </button>
               </CaixaIcones>
 
               {/* Detalhes */}

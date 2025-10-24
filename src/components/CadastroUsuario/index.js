@@ -33,7 +33,11 @@ export default function CadastroUsuario() {
       console.log("Resposta do servidor:", resposta);
 
       const dados = await resposta.json();
-
+      if (cpf_cnpj.length !== 11) {
+        alert("❌| CPF inválido. O CPF deve conter 11 dígitos.");
+        setLoading(false);
+        return;
+      }
       if (resposta.ok) {
         alert("Cadastro realizado com sucesso!");
         navigate("/");

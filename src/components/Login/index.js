@@ -2,12 +2,16 @@ import React, { useState } from "react";
 import styled from "styled-components";
 import fotoLogin from "../../img/Imagem Projeto.png";
 import { useNavigate } from "react-router-dom";
-
 const Container = styled.div`
   display: flex;
   height: 100vh;
   font-family: Arial, sans-serif;
   position: relative;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    height: auto;
+  }
 `;
 
 const LeftSide = styled.div`
@@ -16,12 +20,21 @@ const LeftSide = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    height: 200px; /* Ajuste a altura da imagem em telas pequenas */
+  }
 `;
 
 const Image = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
+
+  @media (max-width: 768px) {
+    object-fit: contain;
+  }
 `;
 
 const RightSide = styled.div`
@@ -32,7 +45,74 @@ const RightSide = styled.div`
   flex-direction: column;
   justify-content: center;
   padding: 0 50px;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    padding: 20px;
+  }
 `;
+
+const Title = styled.h2`
+  font-size: 32px;
+  margin-bottom: 40px;
+  align-self: center;
+  font-weight: 1000;
+  font-family: Roboto, sans-serif;
+
+  @media (max-width: 768px) {
+    font-size: 28px;
+    margin-bottom: 20px;
+  }
+`;
+
+const Input = styled.input`
+  width: 100%;
+  padding: 12px;
+  border-radius: 25px;
+  border: none;
+  font-size: 16px;
+  outline: none;
+
+  @media (max-width: 768px) {
+    padding: 10px;
+    font-size: 14px;
+  }
+`;
+
+const Button = styled.button`
+  width: 100%;
+  padding: 14px;
+  border-radius: 30px;
+  background-color: #9100ff;
+  color: #fff;
+  font-weight: bold;
+  font-size: 18px;
+  border: none;
+  cursor: pointer;
+  margin-bottom: 20px;
+
+  @media (max-width: 768px) {
+    padding: 12px;
+    font-size: 16px;
+  }
+`;
+
+const Popup = styled.div`
+  background: linear-gradient(135deg, #2c2cfc, #1e1e2f);
+  padding: 30px;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 400px;
+  color: #fff;
+  text-align: center;
+  position: relative;
+
+  @media (max-width: 768px) {
+    padding: 20px;
+    max-width: 90%;
+  }
+`;
+
 const SuccessBox = styled.div`
   background-color: #d4edda;
   border: 1px solid #c3e6cb;
@@ -40,12 +120,6 @@ const SuccessBox = styled.div`
   border-radius: 8px;
   padding: 10px;
   margin-bottom: 15px;
-`;
-
-const Title = styled.h2`
-  font-size: 32px;
-  margin-bottom: 40px;
-  align-self: center;
 `;
 
 const InputGroup = styled.div`
@@ -56,15 +130,6 @@ const Label = styled.label`
   display: block;
   margin-bottom: 8px;
   font-weight: bold;
-`;
-
-const Input = styled.input`
-  width: 100%;
-  padding: 12px;
-  border-radius: 25px;
-  border: none;
-  font-size: 16px;
-  outline: none;
 `;
 
 const Options = styled.div`
@@ -86,19 +151,6 @@ const LinkGreen = styled.a`
   cursor: pointer;
 `;
 
-const Button = styled.button`
-  width: 100%;
-  padding: 14px;
-  border-radius: 30px;
-  background-color: #9100ff;
-  color: #fff;
-  font-weight: bold;
-  font-size: 18px;
-  border: none;
-  cursor: pointer;
-  margin-bottom: 20px;
-`;
-
 const Footer = styled.p`
   text-align: center;
   font-size: 14px;
@@ -116,17 +168,6 @@ const PopupOverlay = styled.div`
   justify-content: center;
   align-items: center;
   z-index: 999;
-`;
-
-const Popup = styled.div`
-  background: linear-gradient(135deg, #2c2cfc, #1e1e2f);
-  padding: 30px;
-  border-radius: 20px;
-  width: 90%;
-  max-width: 400px;
-  color: #fff;
-  text-align: center;
-  position: relative;
 `;
 
 const Close = styled.span`
