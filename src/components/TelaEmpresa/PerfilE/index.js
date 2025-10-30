@@ -21,6 +21,7 @@ export default function PerfilUsuario() {
 
   const navigate = useNavigate();
   const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
+
   const handleDashboard = () => {
     navigate("/dashboard");
   };
@@ -107,9 +108,13 @@ export default function PerfilUsuario() {
   };
 
   const [cargo, setCargo] = useState("");
-
+  const [foto, setFoto] = useState("");
   useEffect(() => {
     const fetchCargo = async () => {
+      if (!usuario) {
+        navigate("/");
+        return null;
+      }
       try {
         const resposta = await fetch(
           `http://localhost:3000/usuarios/buscarPorId/${usuario.id}`
@@ -117,6 +122,7 @@ export default function PerfilUsuario() {
         if (resposta.ok) {
           const dados = await resposta.json();
           setCargo(dados);
+          setFoto(dados);
         }
       } catch (error) {
         console.error("Erro ao buscar usuário por ID:", error);
@@ -151,10 +157,7 @@ export default function PerfilUsuario() {
       {/* CONTEÚDO PERFIL */}
       <Conteudo>
         <ProfileContainer>
-          <FotoPerfil
-            src="https://br.web.img2.acsta.net/pictures/18/09/17/22/41/1680893.jpg"
-            alt="Foto de perfil"
-          />
+          <FotoPerfil src={foto.foto} alt="Foto de perfil" />
           <Nome>{usuario.nome}</Nome>
           <Cargo>{cargo.cargo}</Cargo>
           <Botoes>

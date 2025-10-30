@@ -21,7 +21,7 @@ export default function VagasUsuario() {
     const fetchVagas = async () => {
       try {
         if (!usuario) {
-          navigate("/login");
+          navigate("/");
           return null;
         }
         const resposta = await fetch(`http://localhost:3000/vagas/listarTodas`);

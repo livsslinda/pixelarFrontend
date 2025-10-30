@@ -23,6 +23,22 @@ export default function PaginaInicial() {
   const [vagas, setVagas] = useState([]);
   const [erro, setErro] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+    //
+    const [setores, setSetores] = useState([]);
+    const [setorSelecionado, setSetorSelecionado] = useState("");
+    const [salarioMaximo, setSalarioMaximo] = useState(0);
+    const [maiorSalarioDisponivel, setMaiorSalarioDisponivel] = useState(0);
+    const [buscaTitulo, setBuscaTitulo] = useState("");
+    //
+    const vagasFiltradas = vagas.filter((v) => {
+    const tituloValido = v.titulo.toLowerCase().includes(buscaTitulo.toLowerCase());
+    const salarioValido = !salarioMaximo || Number(v.salario) <= salarioMaximo;
+    const setorValido = !setorSelecionado || v.setor === setorSelecionado;
+    return tituloValido && salarioValido && setorValido;
+    });
+    //
+
 
   const [vagaEmEdicao, setVagaEmEdicao] = useState(null);
   const [formDados, setFormDados] = useState({
@@ -72,6 +88,27 @@ export default function PaginaInicial() {
         }
         const dados = await resposta.json();
         setVagas(dados);
+      const vagasComEmpresa = await Promise.all(
+          dados.map(async (vaga) => {
+            const resUsuario = await fetch(
+              `http://localhost:3000/usuarios/buscarPorId/${vaga.id_usuario}`
+            );
+            if (!resUsuario.ok)
+              return { ...vaga, nome_empresa: "Desconhecida" };
+            const usuarioDados = await resUsuario.json();
+            return { ...vaga, nome_empresa: usuarioDados.nome };
+          })
+        );
+        const maiorSalario = Math.max(...vagasComEmpresa.map(v => Number(v.salario) || 0));
+setMaiorSalarioDisponivel(maiorSalario);
+setSalarioMaximo(maiorSalario); // já começa no máximo
+        console.log("Empresa da vaga:", vagas.nome_empresa);
+        setVagas(vagasComEmpresa);
+        //
+        const setoresUnicos = [...new Set(vagasComEmpresa.map((v) => v.setor))];
+        setSetores(setoresUnicos);
+        //
+        // setVagas(dados);
       } catch (error) {
         setErro("Erro ao buscar Vagas");
       } finally {
@@ -83,7 +120,7 @@ export default function PaginaInicial() {
 
   const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
   if (!usuario) {
-    navigate("/login");
+    navigate("/");
     return null;
   }
 
@@ -240,6 +277,7 @@ export default function PaginaInicial() {
     localStorage.removeItem("usuarioLogado");
     setTimeout(() => navigate("/"), 500);
   };
+
   const items = [
     {
       icon: <VscAccount size={18} />,
@@ -264,7 +302,7 @@ export default function PaginaInicial() {
             { label: "Dashboard", href: "/dashboard" },
             { label: "Candidatos", href: "/candidatos" },
           ]}
-          activeHref="/"
+          activeHref="/vagas"
           className="custom-nav"
           ease="power2.easeOut"
           baseColor="#7000d8"
@@ -295,16 +333,32 @@ export default function PaginaInicial() {
       <Conteudo>
         <BarraLateral>
           <TituloSidebar>Filtrar</TituloSidebar>
-          <Entrada type="text" placeholder="🔍" />
-          <Selecao>
-            <option>Área</option>
+          <Entrada
+            type="text"
+            placeholder="🔍"
+            value={buscaTitulo}
+            onChange={(e) => setBuscaTitulo(e.target.value)}
+          />
+          <Selecao
+            value={setorSelecionado}
+            onChange={(e) => setSetorSelecionado(e.target.value)}
+          >
+            <option value="">Todas</option>
+            {setores.map((setor, index) => (
+              <option key={index} value={setor}>
+                {setor}
+              </option>
+            ))}
           </Selecao>
-          <Selecao>
-            <option>Nível</option>
-          </Selecao>
-          <Rotulo>Salário</Rotulo>
-          <ControleDeslizante type="range" />
-
+          <Rotulo>Salário: R$ {salarioMaximo > 0 ? salarioMaximo : ""}</Rotulo>
+          <ControleDeslizante
+            type="range"
+            min="0"
+            max={maiorSalarioDisponivel}
+            step="100"
+            value={salarioMaximo}
+            onChange={(e) => setSalarioMaximo(Number(e.target.value))}
+          />
           <Popup
             trigger={<BotaoCriarVaga>Criar Vaga</BotaoCriarVaga>}
             modal
@@ -375,7 +429,7 @@ export default function PaginaInicial() {
             <p>Nenhuma vaga encontrada.</p>
           )}
 
-          {vagas.map((vaga) => (
+          {vagasFiltradas.map((vaga) => (
             <CartaoVaga key={vaga.id_vaga}>
               <TituloVaga>{vaga.titulo}</TituloVaga>
               <DescricaoVaga>{vaga.descricao}</DescricaoVaga>
@@ -390,7 +444,100 @@ export default function PaginaInicial() {
                     >
                       <i className="bi bi-pencil-square"></i>
                     </button>
-
+{showEditModal && (
+                  <Popup
+                    open={showEditModal}
+                    modal
+                    nested
+                    onClose={handleCancelarEdicao}
+                    overlayStyle={{ background: "rgba(0, 0, 0, 0.5)" }}
+                    contentStyle={{
+                      background: "transparent",
+                      border: "none",
+                      boxShadow: "none",
+                      padding: 0,
+                    }}
+                  >
+                    {(close) => (
+                      <div style={styles.container}>
+                        <div style={styles.card2}>
+                          <h2
+                            style={styles.fechar}
+                            onClick={handleCancelarEdicao}
+                          >
+                            Fechar ✖
+                          </h2>
+                          <h2 style={{ marginBottom: "15px" }}>Editar Vaga</h2>
+                          <form onSubmit={handleSalvarEdicao}>
+                            <InputForm
+                              type="text"
+                              value={formDados.titulo}
+                              onChange={(e) =>
+                                setFormDados({
+                                  ...formDados,
+                                  titulo: e.target.value,
+                                })
+                              }
+                              placeholder="Título"
+                              required
+                            />
+                            <InputForm
+                              type="text"
+                              value={formDados.descricao}
+                              onChange={(e) =>
+                                setFormDados({
+                                  ...formDados,
+                                  descricao: e.target.value,
+                                })
+                              }
+                              placeholder="Descrição"
+                              required
+                            />
+                            <InputForm
+                              type="text"
+                              value={formDados.requisitos}
+                              onChange={(e) =>
+                                setFormDados({
+                                  ...formDados,
+                                  requisitos: e.target.value,
+                                })
+                              }
+                              placeholder="Requisitos"
+                              required
+                            />
+                            <InputForm
+                              type="text"
+                              value={formDados.setor}
+                              onChange={(e) =>
+                                setFormDados({
+                                  ...formDados,
+                                  setor: e.target.value,
+                                })
+                              }
+                              placeholder="Setor"
+                              required
+                            />
+                            <InputForm
+                              type="number"
+                              value={formDados.salario}
+                              onChange={(e) =>
+                                setFormDados({
+                                  ...formDados,
+                                  salario: e.target.value,
+                                })
+                              }
+                              placeholder="Salário"
+                              required
+                            />
+                            <BotaoSubmit type="submit" disabled={isUpdating}>
+                              {isUpdating ? "Salvando..." : "Salvar Edição"}
+                            </BotaoSubmit>
+                          </form>
+                        </div>
+                      </div>
+                    )}
+                  </Popup>
+                )}
                     <button
                       title="Excluir"
                       className="btn btn-sm btn-outline-danger me-2"

@@ -9,7 +9,12 @@ import { VscAccount } from "react-icons/vsc";
 
 export default function Relatorios() {
   const navigate = useNavigate();
+  const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
 
+  if (!usuario) {
+    navigate("/");
+    return;
+  }
   const handleCandidaturas = () => navigate("/candidaturaUsuario");
   const handleVagas = () => navigate("/vagasU");
   const handlePerfil = () => navigate("/perfilU");

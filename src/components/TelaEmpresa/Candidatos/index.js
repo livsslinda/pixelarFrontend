@@ -428,7 +428,7 @@ export default function Candidatos() {
   useEffect(() => {
     const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
     if (!usuario) {
-      navigate("/login");
+      navigate("/");
       return;
     }
 

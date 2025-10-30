@@ -18,7 +18,7 @@ export default function Dashboard() {
   };
   const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
   if (!usuario) {
-    navigate("/login");
+    navigate("/");
     return;
   }
   const handleLogout = () => {

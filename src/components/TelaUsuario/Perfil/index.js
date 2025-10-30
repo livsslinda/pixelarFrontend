@@ -21,6 +21,7 @@ export default function PerfilUsuario() {
 
   const navigate = useNavigate();
   const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
+
   const handleDashboard = () => {
     navigate("/dashboard");
   };
@@ -49,6 +50,7 @@ export default function PerfilUsuario() {
   const handleSalvar = () => {
     setEditando(false);
   };
+
   const items = [
     {
       icon: <VscAccount size={18} />,
@@ -105,8 +107,12 @@ export default function PerfilUsuario() {
     }
   };
   const [cargo, setCargo] = useState("");
-
+  const [foto, setFoto] = useState("");
   useEffect(() => {
+    if (!usuario) {
+      navigate("/");
+      return null;
+    }
     const fetchCargo = async () => {
       try {
         const resposta = await fetch(
@@ -115,6 +121,8 @@ export default function PerfilUsuario() {
         if (resposta.ok) {
           const dados = await resposta.json();
           setCargo(dados);
+          setFoto(dados);
+          console.log(setFoto);
         }
       } catch (error) {
         console.error("Erro ao buscar usuário por ID:", error);
@@ -149,10 +157,7 @@ export default function PerfilUsuario() {
       {/* CONTEÚDO PERFIL */}
       <Conteudo>
         <ProfileContainer>
-          <FotoPerfil
-            src="https://br.web.img2.acsta.net/pictures/18/09/17/22/41/1680893.jpg"
-            alt="Foto de perfil"
-          />
+          <FotoPerfil src={foto.foto} alt="Foto de perfil" />
           <Nome>{usuario.nome}</Nome>
           <Cargo>{cargo.cargo}</Cargo>
           <Botoes>

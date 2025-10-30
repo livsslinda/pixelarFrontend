@@ -269,6 +269,11 @@ export default function CandidaturaUsuario() {
   const [vagas, setVagas] = useState([]);
   const [erro, setErro] = useState(null);
   const [loading, setLoading] = useState(true);
+  const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
+  if (!usuario) {
+    navigate("/");
+    return null;
+  }
 
   const handleCandidaturas = () => {
     navigate("/candidaturaUsuario");
