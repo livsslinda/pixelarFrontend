@@ -13,7 +13,20 @@ export default function VagasUsuario() {
   const [vagas, setVagas] = useState([]);
   const [erro, setErro] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [setores, setSetores] = useState([]);
+  const [setorSelecionado, setSetorSelecionado] = useState("");
+  const [salarioMaximo, setSalarioMaximo] = useState(0);
+  const [maiorSalarioDisponivel, setMaiorSalarioDisponivel] = useState(0);
+  const [buscaTitulo, setBuscaTitulo] = useState("");
   const navigate = useNavigate();
+  const vagasFiltradas = vagas.filter((v) => {
+    const tituloValido = v.titulo
+      .toLowerCase()
+      .includes(buscaTitulo.toLowerCase());
+    const salarioValido = !salarioMaximo || Number(v.salario) <= salarioMaximo;
+    const setorValido = !setorSelecionado || v.setor === setorSelecionado;
+    return tituloValido && salarioValido && setorValido;
+  });
 
   const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
 
@@ -40,6 +53,13 @@ export default function VagasUsuario() {
         );
         console.log("Empresa da vaga:", vagas.nome_empresa);
         setVagas(vagasComEmpresa);
+        const maiorSalario = Math.max(
+          ...vagasComEmpresa.map((v) => Number(v.salario) || 0)
+        );
+        setMaiorSalarioDisponivel(maiorSalario);
+        setSalarioMaximo(maiorSalario);
+        const setoresUnicos = [...new Set(vagasComEmpresa.map((v) => v.setor))];
+        setSetores(setoresUnicos);
       } catch (error) {
         setErro("Erro ao buscar vagas.");
       } finally {
@@ -134,23 +154,40 @@ export default function VagasUsuario() {
       <Conteudo>
         <BarraLateral>
           <TituloSidebar>Filtrar</TituloSidebar>
-          <Entrada type="text" placeholder="🔍 Pesquisar vaga" />
-          <Selecao>
-            <option>Área</option>
+          <Entrada
+            type="text"
+            placeholder="🔍 Pesquisar vaga"
+            value={buscaTitulo}
+            onChange={(e) => setBuscaTitulo(e.target.value)}
+          />
+          <Selecao
+            value={setorSelecionado}
+            onChange={(e) => setSetorSelecionado(e.target.value)}
+          >
+            <option value="">Todas</option>
+            {setores.map((setor, index) => (
+              <option key={index} value={setor}>
+                {setor}
+              </option>
+            ))}
           </Selecao>
-          <Selecao>
-            <option>Nível</option>
-          </Selecao>
-          <Rotulo>Salário</Rotulo>
-          <ControleDeslizante type="range" />
-        </BarraLateral>
 
+          <Rotulo>Salário R$ {salarioMaximo > 0 ? salarioMaximo : ""}</Rotulo>
+          <ControleDeslizante
+            type="range"
+            min="0"
+            max={maiorSalarioDisponivel}
+            step="100"
+            value={salarioMaximo}
+            onChange={(e) => setSalarioMaximo(Number(e.target.value))}
+          />
+        </BarraLateral>
         <ListaVagas>
           {loading && <p>Carregando vagas...</p>}
           {erro && <p>{erro}</p>}
           {!loading && vagas.length === 0 && <p>Nenhuma vaga encontrada.</p>}
 
-          {vagas.map((vaga) => (
+          {vagasFiltradas.map((vaga) => (
             <CartaoVaga key={vaga.id_vaga}>
               <TituloVaga>{vaga.titulo}</TituloVaga>
               <DescricaoVaga>{vaga.descricao}</DescricaoVaga>
@@ -339,8 +376,30 @@ const Rotulo = styled.label`
   margin-top: 10px;
 `;
 
-const ControleDeslizante = styled.input`
+const ControleDeslizante = styled.input.attrs({ type: "range" })`
+  -webkit-appearance: none;
   width: 100%;
+  height: 6px;
+  border-radius: 5px;
+  outline: none;
+  cursor: pointer;
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #7000d8;
+    cursor: pointer;
+  }
+
+  &::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #7000d8;
+    cursor: pointer;
+  }
 `;
 
 const ListaVagas = styled.div`

@@ -15,13 +15,42 @@ import "reactjs-popup/dist/index.css";
 import { IoMdClose } from "react-icons/io";
 import { AiFillFileText } from "react-icons/ai";
 import { motion } from "framer-motion";
-
+// --- FUNÇÃO AUXILIAR DE CONVERSÃO DE ARQUIVO PARA BASE64 ---
+const converterParaBase64 = (arquivo) => {
+  return new Promise((resolver, rejeitar) => {
+    const leitor = new FileReader();
+    leitor.readAsDataURL(arquivo);
+    leitor.onload = () => resolver(leitor.result);
+    leitor.onerror = (erro) => rejeitar(erro);
+  });
+};
 export default function PerfilUsuario() {
   const [descricao_perfil, setDescricao_perfil] = useState("");
+  const [abrirEditar, setAbrirEditar] = useState(false);
+  const [abrirCurriculo, setAbrirCurriculo] = useState(false);
+  const [cpf_cnpj, setCpf_cnpj] = useState("");
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [usuario, setUsuario] = useState("");
+  const [error, setErro] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [curriculo, setCurriculo] = useState("");
 
   const navigate = useNavigate();
-  const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
-
+  const usuarioL = JSON.parse(localStorage.getItem("usuarioLogado"));
+  if (!usuarioL) {
+    navigate("/");
+  }
+  const [formDados, setFormDados] = useState({
+    id_usuario: usuarioL.id,
+    nome: "",
+    email: "",
+    cargo: "",
+    cpf_cnpj: "",
+    senha: "",
+  });
   const handleDashboard = () => {
     navigate("/dashboard");
   };
@@ -36,11 +65,8 @@ export default function PerfilUsuario() {
   };
 
   const handlePerfil = () => {
-    navigate("/perfilE");
+    navigate("/perfilU");
   };
-  const [resumo, setResumo] = useState(
-    "Desenvolvedor de software com mais de 5 anos de experiência em desenvolvimento web e móvel. Apaixonado por criar aplicações eficientes e escaláveis utilizando tecnologias modernas."
-  );
   const [editando, setEditando] = useState(false);
 
   const handleEditar = () => {
@@ -64,28 +90,130 @@ export default function PerfilUsuario() {
     },
   ];
   useEffect(() => {
-    const fetchDescricaoPerfil = async () => {
+    if (!usuarioL) {
+      navigate("/");
+      return;
+    }
+
+    const fetchUsuario = async () => {
       try {
         const resposta = await fetch(
-          `http://localhost:3000/usuarios/buscarDescricao/${usuario.id}`
+          `http://localhost:3000/usuarios/buscarPorId/${usuarioL.id}`
         );
+
         if (resposta.ok) {
           const dados = await resposta.json();
-          setDescricao_perfil(dados.descricao_perfil);
+
+          setCargo(dados.cargo);
+          setFoto(dados.foto);
+          setCpf_cnpj(dados.cpf_cnpj);
+          setEmail(dados.email);
+          setNome(dados.nome);
+          setUsuario(dados);
+          setDescricao_perfil(dados.descricao_perfil || "");
+
+          setFormDados({
+            id_usuario: usuarioL.id,
+            nome: dados.nome,
+            email: dados.email,
+            cargo: dados.cargo,
+            cpf_cnpj: dados.cpf_cnpj,
+            senha: "",
+          });
         } else {
-          console.error("Erro ao buscar descrição do perfil");
+          console.error("Erro ao buscar usuário por ID");
         }
       } catch (error) {
         console.error("Erro na requisição:", error);
       }
     };
 
-    fetchDescricaoPerfil();
-  }, [usuario.id]);
-  const handleSalvarDescricao = async () => {
+    fetchUsuario();
+  }, [usuarioL.id]);
+
+  const handleSalvarPerfil = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+    setErro("");
+    try {
+      let fotoBase64 = null;
+      if (foto) {
+        fotoBase64 = await converterParaBase64(foto);
+      }
+
+      const resposta = await fetch(
+        `http://localhost:3000/usuarios/atualizar/${usuarioL.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            nome: formDados.nome,
+            email: formDados.email,
+            cargo: formDados.cargo,
+            cpf_cnpj: formDados.cpf_cnpj,
+            senha: formDados.senha,
+            foto: fotoBase64,
+          }),
+        }
+      );
+
+      if (resposta.ok) {
+        const dados = await resposta.json();
+        setUsuario(dados);
+
+        setAbrirEditar(false);
+        setSuccess(true);
+      } else {
+        const erro = await resposta.text();
+        console.error("Erro ao atualizar:", erro);
+        setErro(erro.message || "Erro ao atualizar o Perfil. Tente novamente.");
+      }
+    } catch (erro) {
+      console.error("Erro de conexão:", erro);
+      setErro("Não foi possível conectar ao servidor.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  const handleSalvarCurriculo = async () => {
+    setLoading(true);
+    setErro("");
     try {
       const resposta = await fetch(
-        `http://localhost:3000/usuarios/atualizarDescricao/${usuario.id}`,
+        `http://localhost:3000/curriculos/atualizar/${usuarioL.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (resposta.ok) {
+        const dados = await resposta.json();
+        setCurriculo(dados);
+        setSuccess(true);
+      } else {
+        const erro = await resposta.text();
+        console.error("Erro ao atualizar:", erro);
+        setErro("Não foi possível conectar ao servidor.");
+      }
+    } catch (erro) {
+      console.error("Erro de conexão:", erro);
+      setErro("Não foi possível conectar ao servidor.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  const handleSalvarDescricao = async () => {
+    setLoading(true);
+    setErro("");
+    setSuccess(false);
+
+    try {
+      const resposta = await fetch(
+        `http://localhost:3000/usuarios/atualizarDescricao/${usuarioL.id}`,
         {
           method: "PUT",
           headers: {
@@ -96,27 +224,43 @@ export default function PerfilUsuario() {
       );
 
       if (resposta.ok) {
-        const dados = await resposta.json();
-        setDescricao_perfil(dados.usuario.descricao_perfil);
-        setEditando(false);
+        const dadosAtualizados = await fetch(
+          `http://localhost:3000/usuarios/buscarPorId/${usuarioL.id}`
+        );
+        const usuarioAtualizado = await dadosAtualizados.json();
+
+        setDescricao_perfil(usuarioAtualizado.descricao_perfil);
+        setSuccess(true);
+
+      
+        setTimeout(() => {
+          setEditando(false);
+          setSuccess(false);
+        }, 500);
       } else {
-        console.error("Erro ao atualizar descrição do perfil");
+        const erro = await resposta.text();
+        console.error("Erro ao atualizar descrição do perfil:", erro);
+        setErro("Não foi possível atualizar a descrição.");
       }
     } catch (error) {
       console.error("Erro na requisição:", error);
+      setErro("Erro de conexão com o servidor.");
+    } finally {
+      setLoading(false);
     }
   };
+
   const [cargo, setCargo] = useState("");
   const [foto, setFoto] = useState("");
   useEffect(() => {
-    if (!usuario) {
+    if (!usuarioL) {
       navigate("/");
       return null;
     }
     const fetchCargo = async () => {
       try {
         const resposta = await fetch(
-          `http://localhost:3000/usuarios/buscarPorId/${usuario.id}`
+          `http://localhost:3000/usuarios/buscarPorId/${usuarioL.id}`
         );
         if (resposta.ok) {
           const dados = await resposta.json();
@@ -158,7 +302,7 @@ export default function PerfilUsuario() {
       <Conteudo>
         <ProfileContainer>
           <FotoPerfil src={foto.foto} alt="Foto de perfil" />
-          <Nome>{usuario.nome}</Nome>
+          <Nome>{usuarioL.nome}</Nome>
           <Cargo>{cargo.cargo}</Cargo>
           <Botoes>
             <Popup
@@ -172,6 +316,7 @@ export default function PerfilUsuario() {
               }
               modal
               nested
+              lockScroll={false}
               overlayStyle={{ background: "rgba(0,0,0,0.5)" }}
               contentStyle={{
                 background: "transparent",
@@ -187,12 +332,205 @@ export default function PerfilUsuario() {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.8 }}
                     transition={{ duration: 0.3, ease: "easeOut" }}
-                    style={styles.card2}
+                    style={{
+                      background:
+                        "linear-gradient(to right bottom, rgb(33, 8, 146), rgb(86, 56, 129))",
+                      borderRadius: "12px",
+                      padding: "30px",
+                      width: "90%",
+                      maxWidth: "800px",
+                      position: "relative",
+                      textAlign: "center",
+                      display: "flex",
+                      flexDirection: "column",
+                    }}
                   >
                     <h2 style={styles.fechar} onClick={close}>
                       <IoMdClose size={30} />
                     </h2>
-                    <h2 style={{ marginBottom: "15px" }}>Configurações</h2>
+                    <h2 style={{ marginBottom: "15px", color: "#ffffffff" }}>
+                      Configurações
+                    </h2>
+
+                    <BotaoSalvar
+                      onClick={() => setAbrirEditar(!abrirEditar)}
+                      style={{
+                        backgroundColor: "#7000d8",
+                        color: "white",
+                        marginBottom: "20px",
+                      }}
+                    >
+                      {abrirEditar ? "Fechar edição" : "Editar Perfil"}
+                    </BotaoSalvar>
+
+                    <motion.div
+                      initial={false}
+                      animate={{
+                        height: abrirEditar ? "auto" : 0,
+                        opacity: abrirEditar ? 1 : 0,
+                        marginTop: abrirEditar ? 20 : 0,
+                      }}
+                      transition={{ duration: 0.4, ease: "easeInOut" }}
+                      style={{
+                        overflow: "hidden",
+                        width: "100%",
+                        display: "flex",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <EditarBox>
+                        <h4>Editar Perfil</h4>
+                        <Input
+                          type="text"
+                          value={formDados.nome}
+                          onChange={(e) =>
+                            setFormDados({
+                              ...formDados,
+                              nome: e.target.value,
+                            })
+                          }
+                          placeholder="Nome"
+                          required
+                        />
+                        <Input
+                          type="email"
+                          value={formDados.email}
+                          onChange={(e) =>
+                            setFormDados({
+                              ...formDados,
+                              email: e.target.value,
+                            })
+                          }
+                          placeholder="E-mail"
+                          required
+                        />
+                        <Input
+                          type="text"
+                          value={formDados.cargo}
+                          onChange={(e) =>
+                            setFormDados({
+                              ...formDados,
+                              cargo: e.target.value,
+                            })
+                          }
+                          placeholder="Cargo"
+                          required
+                        />
+                        <Input
+                          type="text"
+                          value={formDados.cpf_cnpj}
+                          placeholder="CPF/CNPJ"
+                          required
+                        />
+                        <Input
+                          type="password"
+                          value={formDados.senha}
+                          onChange={(e) =>
+                            setFormDados({
+                              ...formDados,
+                              senha: e.target.value,
+                            })
+                          }
+                          placeholder="Senha"
+                          required
+                        />
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const arquivo = e.target.files[0];
+                            if (arquivo) {
+                              setFoto({
+                                preview: URL.createObjectURL(arquivo),
+                                file: arquivo,
+                              });
+                            }
+                          }}
+                        />
+
+                        {foto && (
+                          <img
+                            src={foto.preview}
+                            alt="Prévia"
+                            style={styles.preview}
+                          />
+                        )}
+                        {error && (
+                          <div className="alert alert-danger" role="alert">
+                            {error}
+                          </div>
+                        )}
+                        {success && (
+                          <SuccessBox>
+                            Perfil atualizado com sucesso!
+                          </SuccessBox>
+                        )}
+                        <BotaoSalvar
+                          onClick={handleSalvarPerfil}
+                          disabled={loading}
+                        >
+                          {loading ? "Atualizando..." : "Salvar"}
+                        </BotaoSalvar>
+                      </EditarBox>
+                    </motion.div>
+                    <BotaoSalvar
+                      onClick={() => setAbrirCurriculo(!abrirCurriculo)}
+                      style={{
+                        backgroundColor: "#7000d8",
+                        color: "white",
+                        marginBottom: "20px",
+                      }}
+                    >
+                      {abrirCurriculo ? "Fechar" : "Currículo"}
+                    </BotaoSalvar>
+                    <motion.div
+                      initial={false}
+                      animate={{
+                        height: abrirCurriculo ? "auto" : 0,
+                        opacity: abrirCurriculo ? 1 : 0,
+                        marginTop: abrirCurriculo ? 20 : 0,
+                      }}
+                      transition={{ duration: 0.4, ease: "easeInOut" }}
+                      style={{
+                        overflow: "hidden",
+                        width: "100%",
+                        display: "flex",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <EditarBox>
+                        <h4>Editar Curriculo</h4>
+                        <Input
+                          type="file"
+                          accept="application/pdf"
+                          onChange={(e) => {
+                            const arquivo = e.target.files[0];
+                            if (arquivo) {
+                              setCurriculo({
+                                preview: arquivo.name,
+                                file: arquivo,
+                              });
+                            }
+                          }}
+                        />
+                        {error && (
+                          <div className="alert alert-danger" role="alert">
+                            {error}
+                          </div>
+                        )}
+                        {success && (
+                          <SuccessBox>
+                            Currículo atualizado com sucesso!
+                          </SuccessBox>
+                        )}
+                        <BotaoSalvar
+                          onClick={handleSalvarCurriculo}
+                          disabled={loading}
+                        >
+                          {loading ? "Atualizando..." : "Salvar"}
+                        </BotaoSalvar>
+                      </EditarBox>
+                    </motion.div>
                   </motion.div>
                 </div>
               )}
@@ -220,11 +558,21 @@ export default function PerfilUsuario() {
                 value={descricao_perfil}
                 onChange={(e) => setDescricao_perfil(e.target.value)}
               />
-              <BotaoSalvar onClick={handleSalvarDescricao}>Salvar</BotaoSalvar>
+              {error && (
+                <div className="alert alert-danger" role="alert">
+                  {error}
+                </div>
+              )}
+              {success && <SuccessBox>Descrição salva com sucesso!</SuccessBox>}
+              <BotaoSalvar onClick={handleSalvarDescricao} disabled={loading}>
+                {loading ? "Salvando.." : "Salvar"}
+              </BotaoSalvar>
             </>
           ) : (
             <ResumoTexto>
-              {descricao_perfil || "Sem descrição cadastrada"}
+              {descricao_perfil?.trim() !== ""
+                ? descricao_perfil
+                : "Sem descrição cadastrada"}
             </ResumoTexto>
           )}
         </ResumoBox>
@@ -241,18 +589,6 @@ export default function PerfilUsuario() {
   );
 }
 
-const TextareaEdit = styled.textarea`
-  width: 90%;
-  max-width: 700px;
-  height: 120px;
-  font-size: 15px;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid #aaa;
-  margin: 0 auto; /* centraliza horizontalmente */
-  display: block; /* necessário para centralização */
-  resize: vertical;
-`;
 const BarraNav = styled.div`
   background-color: rgba(112, 0, 216, 0);
   display: flex;
@@ -271,21 +607,6 @@ const DockWrapper = styled.div`
   z-index: 1000;
 `;
 
-const BotaoSalvar = styled.button`
-  margin: 15px auto 0 auto; /* centraliza horizontalmente e dá espaço em cima */
-  display: block;
-  padding: 10px 20px;
-  border-radius: 8px;
-  border: none;
-  background-color: #7000d8;
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-
-  &:hover {
-    background-color: #4b0082;
-  }
-`;
 /* ---------- ESTILOS ---------- */
 const PaginaContainer = styled.div`
   font-family: Arial, sans-serif;
@@ -424,6 +745,96 @@ const ResumoTitulo = styled.h3`
   font-size: 20px;
   margin-bottom: 10px;
 `;
+const EditarBox = styled(motion.div)`
+  background: linear-gradient(135deg, #ffffff 0%, #f4f0ff 100%);
+  border-radius: 16px;
+  box-shadow: 0px 10px 25px rgba(0, 0, 0, 0.15);
+  padding: 40px 30px;
+  width: 85%;
+  max-width: 750px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  transition: all 0.3s ease;
+  border: 1px solid #e0d6ff;
+  margin-bottom: 5px;
+  margin-top: 5px;
+  h4 {
+    color: #4b0082;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+`;
+
+const Input = styled.input`
+  width: 90%;
+  max-width: 650px;
+  padding: 12px 16px;
+  border: 2px solid #d5c4ff;
+  border-radius: 10px;
+  font-size: 15px;
+  outline: none;
+  background: #fff;
+  transition: all 0.25s ease;
+  box-shadow: inset 0 0 0 rgba(0, 0, 0, 0);
+
+  &:focus {
+    border-color: #7000d8;
+    box-shadow: 0 0 8px rgba(112, 0, 216, 0.3);
+  }
+`;
+
+const TextareaEdit = styled.textarea`
+  width: 90%;
+  max-width: 650px;
+  height: 130px;
+  font-size: 15px;
+  padding: 14px;
+  border-radius: 10px;
+  border: 2px solid #d5c4ff;
+  resize: vertical;
+  outline: none;
+  background: #fff;
+  transition: all 0.25s ease;
+
+  &:focus {
+    border-color: #7000d8;
+    box-shadow: 0 0 8px rgba(112, 0, 216, 0.3);
+  }
+`;
+const SuccessBox = styled.div`
+  background-color: #d4edda;
+  border: 1px solid #c3e6cb;
+  color: #155724;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 15px;
+`;
+
+const BotaoSalvar = styled.button`
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #7000d8, #b188ff);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  margin-top: 10px;
+  box-shadow: 0 4px 12px rgba(112, 0, 216, 0.4);
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(112, 0, 216, 0.5);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+`;
 
 const ResumoTexto = styled.p`
   font-size: 15px;
@@ -439,6 +850,15 @@ const BotaoConfig = styled.div`
   margin-bottom: 0;
 `;
 const styles = {
+  preview: {
+    display: "flex",
+    marginTop: "10px",
+    width: "200px",
+    height: "200px",
+    borderRadius: "50%",
+    objectFit: "cover",
+    border: "3px solid #00ccff",
+  },
   container: {
     display: "flex",
     justifyContent: "center",

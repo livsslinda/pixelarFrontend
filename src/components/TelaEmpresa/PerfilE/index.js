@@ -18,7 +18,9 @@ import { motion } from "framer-motion";
 
 export default function PerfilUsuario() {
   const [descricao_perfil, setDescricao_perfil] = useState("");
-
+  const [error, setErro] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
   const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
 
@@ -82,6 +84,10 @@ export default function PerfilUsuario() {
     fetchDescricaoPerfil();
   }, [usuario.id]);
   const handleSalvarDescricao = async () => {
+    setLoading(true);
+    setErro("");
+    setSuccess(false);
+
     try {
       const resposta = await fetch(
         `http://localhost:3000/usuarios/atualizarDescricao/${usuario.id}`,
@@ -94,16 +100,29 @@ export default function PerfilUsuario() {
         }
       );
 
-      const dados = await resposta.json();
       if (resposta.ok) {
-        console.log(dados); // veja se usuario.descricao_perfil existe
-        setDescricao_perfil(dados.usuario.descricao_perfil || descricao_perfil);
-        setEditando(false);
+        const dadosAtualizados = await fetch(
+          `http://localhost:3000/usuarios/buscarPorId/${usuario.id}`
+        );
+        const usuarioAtualizado = await dadosAtualizados.json();
+
+        setDescricao_perfil(usuarioAtualizado.descricao_perfil);
+        setSuccess(true);
+
+        setTimeout(() => {
+          setEditando(false);
+          setSuccess(false);
+        }, 500);
       } else {
-        console.error("Erro ao atualizar descrição do perfil", dados);
+        const erro = await resposta.text();
+        console.error("Erro ao atualizar descrição do perfil:", erro);
+        setErro("Não foi possível atualizar a descrição.");
       }
     } catch (error) {
       console.error("Erro na requisição:", error);
+      setErro("Erro de conexão com o servidor.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -220,11 +239,21 @@ export default function PerfilUsuario() {
                 value={descricao_perfil}
                 onChange={(e) => setDescricao_perfil(e.target.value)}
               />
-              <BotaoSalvar onClick={handleSalvarDescricao}>Salvar</BotaoSalvar>
+              {error && (
+                <div className="alert alert-danger" role="alert">
+                  {error}
+                </div>
+              )}
+              {success && <SuccessBox>Descrição salva com sucesso!</SuccessBox>}
+              <BotaoSalvar onClick={handleSalvarDescricao} disabled={loading}>
+                {loading ? "Salvando.." : "Salvar"}
+              </BotaoSalvar>
             </>
           ) : (
             <ResumoTexto>
-              {descricao_perfil || "Sem descrição cadastrada"}
+              {descricao_perfil?.trim() !== ""
+                ? descricao_perfil
+                : "Sem descrição cadastrada"}
             </ResumoTexto>
           )}
         </ResumoBox>
@@ -243,15 +272,56 @@ export default function PerfilUsuario() {
 
 const TextareaEdit = styled.textarea`
   width: 90%;
-  max-width: 700px;
-  height: 120px;
+  max-width: 650px;
+  height: 130px;
   font-size: 15px;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid #aaa;
-  margin: 0 auto; /* centraliza horizontalmente */
-  display: block; /* necessário para centralização */
+  padding: 14px;
+  border-radius: 10px;
+  border: 2px solid #d5c4ff;
   resize: vertical;
+  outline: none;
+  background: #fff;
+  transition: all 0.25s ease;
+
+  &:focus {
+    border-color: #7000d8;
+    box-shadow: 0 0 8px rgba(112, 0, 216, 0.3);
+  }
+`;
+const SuccessBox = styled.div`
+  background-color: #d4edda;
+  border: 1px solid #c3e6cb;
+  color: #155724;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 15px;
+`;
+const BotaoSalvar = styled.button`
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #7000d8, #b188ff);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  margin-top: 10px;
+  box-shadow: 0 4px 12px rgba(112, 0, 216, 0.4);
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(112, 0, 216, 0.5);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+`;
+
+const ResumoTexto = styled.p`
+  font-size: 15px;
+  line-height: 1.6;
 `;
 const BarraNav = styled.div`
   background-color: rgba(112, 0, 216, 0);
@@ -271,21 +341,6 @@ const DockWrapper = styled.div`
   z-index: 1000;
 `;
 
-const BotaoSalvar = styled.button`
-  margin: 15px auto 0 auto; /* centraliza horizontalmente e dá espaço em cima */
-  display: block;
-  padding: 10px 20px;
-  border-radius: 8px;
-  border: none;
-  background-color: #7000d8;
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-
-  &:hover {
-    background-color: #4b0082;
-  }
-`;
 /* ---------- ESTILOS ---------- */
 const PaginaContainer = styled.div`
   font-family: Arial, sans-serif;
@@ -423,11 +478,6 @@ const ResumoBox = styled.div`
 const ResumoTitulo = styled.h3`
   font-size: 20px;
   margin-bottom: 10px;
-`;
-
-const ResumoTexto = styled.p`
-  font-size: 15px;
-  line-height: 1.6;
 `;
 
 const BotaoConfig = styled.div`
