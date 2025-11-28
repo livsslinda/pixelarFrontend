@@ -101,9 +101,11 @@ export default function VagasUsuario() {
         body: JSON.stringify({
           id_vaga: id_vaga,
           id_curriculo: curriculo.id_curriculo,
+          id_usuario: usuario.id,
         }),
       });
       console.log(id_vaga + " " + curriculo.id_curriculo);
+      console.log(usuario.id);
 
       const dados = await resposta.json();
       console.log(dados.id_curriculo);

@@ -13,8 +13,7 @@ import Popup from "reactjs-popup";
 import "reactjs-popup/dist/index.css";
 import { IoMdClose } from "react-icons/io";
 
-/* ---------------------- ESTILOS ---------------------- */
-
+// ---------- ESTILOS ----------
 const CartaoCandidato = styled.div`
   display: flex;
   align-items: center;
@@ -42,6 +41,36 @@ const CartaoCandidatoAnimado = styled(CartaoCandidato)`
   &:hover {
     transform: translateY(-6px) scale(1.02);
     box-shadow: 0 6px 20px rgba(90, 0, 255, 0.25);
+  }
+`;
+
+const InputPontuacao = styled.input`
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  width: 100%;
+  font-size: 15px;
+  background: #ffffff;
+  color: #333;
+  margin-top: 10px;
+
+  &:focus {
+    outline: 2px solid #6c00ff;
+  }
+`;
+
+const SelectEdit = styled.select`
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  width: 100%;
+  font-size: 15px;
+  background: #ffffff;
+  color: #333;
+  cursor: pointer;
+
+  &:focus {
+    outline: 2px solid #6c00ff;
   }
 `;
 
@@ -114,6 +143,7 @@ const CartaoVaga = styled.div`
   border-radius: 15px;
   white-space: nowrap;
   cursor: pointer;
+  transition: 0.2s;
 `;
 
 const Titulo = styled.h2`
@@ -202,28 +232,6 @@ const EditarWrapper = styled.div`
   gap: 15px;
 `;
 
-const InputEdit = styled.input`
-  padding: 12px;
-  border: none;
-  border-radius: 10px;
-  width: 100%;
-  font-size: 15px;
-`;
-
-const BotaoSalvar = styled.button`
-  padding: 12px;
-  background: #00c200;
-  color: #fff;
-  border: none;
-  border-radius: 12px;
-  font-weight: bold;
-  cursor: pointer;
-
-  &:hover {
-    background: #009900;
-  }
-`;
-
 const Corpo = styled.div`
   background-color: #c4caff;
 `;
@@ -242,15 +250,20 @@ const DockWrapper = styled.div`
   justify-content: center;
 `;
 
-/* ---------------------- COMPONENTE ---------------------- */
-
+// ---------- COMPONENTE ----------
 export default function Candidatos() {
   const navigate = useNavigate();
   const [vagas, setVagas] = useState([]);
   const [candidatos, setCandidatos] = useState([]);
+  const [usuarios, setUsuarios] = useState({});
   const [erro, setErro] = useState(null);
-  const [editarAtivo, setEditarAtivo] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const [editarAtivo, setEditarAtivo] = useState(null);
   const [novoStatus, setNovoStatus] = useState("");
+  const [novaPontuacao, setNovaPontuacao] = useState("");
+
+  const [vagaSelecionada, setVagaSelecionada] = useState(null);
 
   const items = [
     {
@@ -270,55 +283,96 @@ export default function Candidatos() {
 
   useEffect(() => {
     const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
-    if (!usuario) return navigate("/");
+    if (!usuario) {
+      navigate("/");
+      return;
+    }
 
     const fetchVagas = async () => {
       try {
         const resposta = await fetch(
           `http://localhost:3000/vagas/listarPorIdUsuario/${usuario.id}`
         );
+        if (!resposta.ok) throw new Error("Erro ao buscar vagas");
         const dados = await resposta.json();
         setVagas(Array.isArray(dados) ? dados : [dados]);
-      } catch {
+      } catch (e) {
         setErro("Erro ao buscar vagas");
       }
     };
 
     fetchVagas();
-    fetchCandidatos();
+    carregarCandidatos();
   }, []);
 
-  const fetchCandidatos = async () => {
+  const carregarCandidatos = async () => {
+    setLoading(true);
     try {
       const resposta = await fetch("http://localhost:3000/candidaturas/listar");
+      if (!resposta.ok) throw new Error("Erro ao buscar candidatos");
+
       const dados = await resposta.json();
-      setCandidatos(dados);
-    } catch {
+      setCandidatos(dados || []);
+
+      const idsUsuarios = Array.from(
+        new Set((dados || []).map((c) => c.id_usuario).filter(Boolean))
+      );
+
+      const usuariosFetch = await Promise.all(
+        idsUsuarios.map(async (id) => {
+          const r = await fetch(
+            `http://localhost:3000/usuarios/buscarPorId/${id}`
+          );
+          if (!r.ok) return { id, erro: true };
+          const data = await r.json();
+          return { id, data };
+        })
+      );
+
+      const novoMap = {};
+      usuariosFetch.forEach((u) => {
+        if (u && u.id && u.data) novoMap[u.id] = u.data;
+      });
+
+      setUsuarios(novoMap);
+    } catch (e) {
+      console.error(e);
       setErro("Erro ao buscar candidatos");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const editarCandidatura = async (id_candidatura) => {
+  const editarCandidatura = async (cand) => {
     try {
+      const body = {
+        status_candidatura: novoStatus || cand.status_candidatura,
+        pontuacao: novaPontuacao || cand.pontuacao,
+      };
+
       await fetch(
-        `http://localhost:3000/candidaturas/atualizar/${id_candidatura}`,
+        `http://localhost:3000/candidaturas/atualizar/${cand.id_candidatura}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            status_candidatura: "",
-            pontuacao: "",
-          }),
+          body: JSON.stringify(body),
         }
       );
 
-      fetchCandidatos();
-      setEditarAtivo(false);
+      await carregarCandidatos();
+      setEditarAtivo(null);
       setNovoStatus("");
-    } catch {
+      setNovaPontuacao("");
+    } catch (e) {
       alert("Erro ao atualizar candidatura");
+      console.error(e);
     }
   };
+
+  // -------- FILTRAR candidatos pela vaga selecionada --------
+  const candidatosFiltrados = vagaSelecionada
+    ? candidatos.filter((c) => c.id_vaga === vagaSelecionada)
+    : candidatos;
 
   return (
     <>
@@ -345,98 +399,163 @@ export default function Candidatos() {
           <BarraLateral>
             <ListaVagas>
               {vagas.map((vaga) => (
-                <CartaoVaga key={vaga.id_vaga}>{vaga.titulo}</CartaoVaga>
+                <CartaoVaga
+                  key={vaga.id_vaga}
+                  onClick={() => setVagaSelecionada(vaga.id_vaga)}
+                  style={{
+                    background:
+                      vagaSelecionada === vaga.id_vaga ? "#6c00ff" : "#9992f5",
+                    color: vagaSelecionada === vaga.id_vaga ? "white" : "black",
+                  }}
+                >
+                  {vaga.titulo}
+                </CartaoVaga>
               ))}
             </ListaVagas>
 
             <ConteudoLateral>
               <Titulo>Candidatos</Titulo>
 
-              {candidatos.length === 0 ? (
-                <p>Nenhum candidato encontrado</p>
+              {loading ? (
+                <p>Carregando candidatos...</p>
+              ) : candidatosFiltrados.length === 0 ? (
+                <p>Nenhum candidato encontrado para esta vaga</p>
               ) : (
                 <GradeCandidatos>
-                  {candidatos.map((cand, index) => (
-                    <CartaoCandidatoAnimado
-                      key={cand.id_candidatura}
-                      style={{ animationDelay: `${index * 0.07}s` }}
-                    >
-                      <InfoCandidato>
-                        <FotoCandidato
-                          src={
-                            cand.foto
-                              ? cand.foto
-                              : "https://cdn-icons-png.flaticon.com/512/149/149071.png"
-                          }
-                          alt={cand.nome}
-                        />
+                  {candidatosFiltrados.map((cand, index) => {
+                    const user = cand.id_usuario
+                      ? usuarios[cand.id_usuario]
+                      : null;
 
-                        <NomePontuacao>
-                          <Nome>{cand.nome}</Nome>
-                          <Pontuacao2>
-                            Pontuação: {cand.pontuacao || "N/A"}
-                          </Pontuacao2>
-                        </NomePontuacao>
-                      </InfoCandidato>
+                    return (
+                      <CartaoCandidatoAnimado
+                        key={cand.id_candidatura}
+                        style={{ animationDelay: `${index * 0.07}s` }}
+                      >
+                        <InfoCandidato>
+                          <FotoCandidato
+                            src={
+                              user?.foto
+                                ? user.foto
+                                : "https://cdn-icons-png.flaticon.com/512/149/149071.png"
+                            }
+                          />
 
-                      <Acoes>
-                        <Popup
-                          trigger={
-                            <IconeAcao>
-                              <FaPlus />
-                            </IconeAcao>
-                          }
-                          modal
-                          nested
-                        >
-                          {(close) => (
-                            <PopupCard>
-                              <Fechar onClick={close}>
-                                <IoMdClose size={30} />
-                              </Fechar>
+                          <NomePontuacao>
+                            <Nome>{user ? user.nome : "Usuário"}</Nome>
+                            <Pontuacao2>
+                              Pontuação:{" "}
+                              {cand.pontuacao ? `${cand.pontuacao}%` : "N/A"}
+                            </Pontuacao2>
+                          </NomePontuacao>
+                        </InfoCandidato>
 
-                              <h2>Detalhes da Candidatura</h2>
+                        <Acoes>
+                          <Popup
+                            trigger={
+                              <IconeAcao>
+                                <FaPlus />
+                              </IconeAcao>
+                            }
+                            modal
+                            nested
+                          >
+                            {(close) => (
+                              <PopupCard>
+                                <Fechar onClick={close}>
+                                  <IoMdClose size={30} />
+                                </Fechar>
 
-                              <InfoBox>
-                                <p>
-                                  Status: <b>{cand.status}</b>
-                                </p>
-                                <p>Vaga: {cand.vagatitulo}</p>
-                                <p>Data: {cand.data}</p>
-                                <p>Pontuação: {cand.pontuacao}</p>
-                              </InfoBox>
+                                <h2>Detalhes da Candidatura</h2>
 
-                              <BotaoEditar
-                                onClick={() => setEditarAtivo(!editarAtivo)}
-                              >
-                                {editarAtivo ? "Fechar Edição" : "Editar"}
-                              </BotaoEditar>
+                                <InfoBox>
+                                  <p>
+                                    Status:{" "}
+                                    <b>
+                                      {cand.status || cand.status_candidatura}
+                                    </b>
+                                  </p>
+                                  <p>
+                                    Vaga:{" "}
+                                    {cand.vagatitulo ||
+                                      cand.nome_vaga ||
+                                      cand.id_vaga}
+                                  </p>
+                                  <p>Data: {cand.data_candidatura}</p>
+                                  <p>
+                                    Pontuação:{" "}
+                                    {cand.pontuacao
+                                      ? `${cand.pontuacao}%`
+                                      : "N/A"}
+                                  </p>
+                                </InfoBox>
 
-                              {editarAtivo && (
-                                <EditarWrapper>
-                                  <InputEdit
-                                    placeholder="Novo Status"
-                                    value={novoStatus}
-                                    onChange={(e) =>
-                                      setNovoStatus(e.target.value)
-                                    }
-                                  />
+                                <BotaoEditar
+                                  onClick={() =>
+                                    setEditarAtivo(
+                                      editarAtivo === cand.id_candidatura
+                                        ? null
+                                        : cand.id_candidatura
+                                    )
+                                  }
+                                >
+                                  {editarAtivo === cand.id_candidatura
+                                    ? "Fechar Edição"
+                                    : "Editar"}
+                                </BotaoEditar>
 
-                                  <BotaoSalvar
-                                    onClick={() =>
-                                      editarCandidatura(cand.id_candidatura)
-                                    }
-                                  >
-                                    Salvar Alterações
-                                  </BotaoSalvar>
-                                </EditarWrapper>
-                              )}
-                            </PopupCard>
-                          )}
-                        </Popup>
-                      </Acoes>
-                    </CartaoCandidatoAnimado>
-                  ))}
+                                {editarAtivo === cand.id_candidatura && (
+                                  <EditarWrapper>
+                                    <SelectEdit
+                                      value={novoStatus}
+                                      onChange={(e) =>
+                                        setNovoStatus(e.target.value)
+                                      }
+                                    >
+                                      <option value="">
+                                        Selecione o novo status
+                                      </option>
+                                      <option value="Em andamento">
+                                        Em andamento
+                                      </option>
+                                      <option value="Aprovado">Aprovado</option>
+                                      <option value="Reprovado">
+                                        Reprovado
+                                      </option>
+                                    </SelectEdit>
+
+                                    <InputPontuacao
+                                      type="number"
+                                      placeholder="Nova pontuação"
+                                      value={novaPontuacao}
+                                      onChange={(e) =>
+                                        setNovaPontuacao(e.target.value)
+                                      }
+                                    />
+
+                                    <button
+                                      onClick={() => editarCandidatura(cand)}
+                                      style={{
+                                        padding: "12px",
+                                        background: "#00c200",
+                                        color: "#fff",
+                                        border: "none",
+                                        borderRadius: "12px",
+                                        fontWeight: "bold",
+                                        cursor: "pointer",
+                                      }}
+                                    >
+                                      Salvar Alterações
+                                    </button>
+                                  </EditarWrapper>
+                                )}
+                              </PopupCard>
+                            )}
+                          </Popup>
+                        </Acoes>
+                      </CartaoCandidatoAnimado>
+                    );
+                  })}
                 </GradeCandidatos>
               )}
             </ConteudoLateral>
