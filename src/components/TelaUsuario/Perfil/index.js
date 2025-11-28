@@ -37,7 +37,7 @@ export default function PerfilUsuario() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [curriculo, setCurriculo] = useState("");
-
+  const [nomePerfil, setNomePerfil] = useState("");
   const navigate = useNavigate();
   const usuarioL = JSON.parse(localStorage.getItem("usuarioLogado"));
   if (!usuarioL) {
@@ -131,14 +131,75 @@ export default function PerfilUsuario() {
     fetchUsuario();
   }, [usuarioL.id]);
 
+  const handleSalvarDescricao = async () => {
+    setLoading(true);
+    setErro("");
+    setSuccess(false);
+
+    try {
+      const resposta = await fetch(
+        `http://localhost:3000/usuarios/atualizarDescricao/${usuarioL.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ descricao_perfil: descricao_perfil.trim() }),
+        }
+      );
+
+      if (resposta.ok) {
+        const resAtualizado = await fetch(
+          `http://localhost:3000/usuarios/buscarPorId/${usuarioL.id}`
+        );
+        const usuarioAtualizado = await resAtualizado.json();
+
+        setDescricao_perfil(usuarioAtualizado.descricao_perfil);
+
+        setFormDados({
+          id_usuario: usuarioL.id,
+          nome: usuarioAtualizado.nome,
+          email: usuarioAtualizado.email,
+          cargo: usuarioAtualizado.cargo,
+          cpf_cnpj: usuarioAtualizado.cpf_cnpj,
+          senha: "",
+        });
+
+        setNomePerfil(usuarioAtualizado.nome);
+        setFoto({
+          preview: usuarioAtualizado.foto,
+          file: null,
+        });
+
+        setSuccess(true);
+        setAbrirEditar(false);
+
+        setEditando(false);
+      } else {
+        const erro = await resposta.text();
+        console.error("Erro ao atualizar descrição do perfil:", erro);
+        setErro("Não foi possível atualizar a descrição.");
+      }
+    } catch (error) {
+      console.error("Erro na requisição:", error);
+      setErro("Erro de conexão com o servidor.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const [cargo, setCargo] = useState("");
+  const [foto, setFoto] = useState("");
   const handleSalvarPerfil = async (event) => {
     event.preventDefault();
     setLoading(true);
     setErro("");
+
     try {
       let fotoBase64 = null;
-      if (foto) {
-        fotoBase64 = await converterParaBase64(foto);
+
+      if (foto.file) {
+        fotoBase64 = await converterParaBase64(foto.file);
       }
 
       const resposta = await fetch(
@@ -160,15 +221,11 @@ export default function PerfilUsuario() {
       );
 
       if (resposta.ok) {
-        const dados = await resposta.json();
-        setUsuario(dados);
-
-        setAbrirEditar(false);
         setSuccess(true);
+        setNomePerfil(resposta.nome);
+        setAbrirEditar(false);
       } else {
-        const erro = await resposta.text();
-        console.error("Erro ao atualizar:", erro);
-        setErro(erro.message || "Erro ao atualizar o Perfil. Tente novamente.");
+        setErro("Erro ao atualizar o Perfil.");
       }
     } catch (erro) {
       console.error("Erro de conexão:", erro);
@@ -177,10 +234,53 @@ export default function PerfilUsuario() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const fetchCargo = async () => {
+      if (!usuarioL) {
+        navigate("/");
+        return;
+      }
+
+      try {
+        const resposta = await fetch(
+          `http://localhost:3000/usuarios/buscarPorId/${usuarioL.id}`
+        );
+
+        if (resposta.ok) {
+          const dados = await resposta.json();
+
+          setCargo(dados);
+          setNomePerfil(dados.nome);
+          // FOTO SALVA NO BANCO
+          setFoto({
+            preview: dados.foto || "",
+            file: null,
+          });
+
+          // Preenche inputs
+          setFormDados({
+            id_usuario: usuarioL.id,
+            nome: dados.nome,
+            email: dados.email,
+            cargo: dados.cargo,
+            cpf_cnpj: dados.cpf_cnpj,
+            senha: "",
+          });
+        }
+      } catch (error) {
+        console.error("Erro ao buscar usuário por ID:", error);
+      }
+    };
+
+    fetchCargo();
+  }, [usuarioL.id]);
+
   const handleSalvarCurriculo = async () => {
     setLoading(true);
     setErro("");
     setSuccess(false);
+
     try {
       if (!curriculo.file) {
         setErro("Selecione um arquivo PDF primeiro.");
@@ -190,79 +290,56 @@ export default function PerfilUsuario() {
 
       const base64 = await converterParaBase64(curriculo.file);
 
-      const resposta = await fetch(
-        `http://localhost:3000/curriculos/registrar`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            id_usuario: usuarioL.id,
-            arquivo_curriculo: base64, // Envia em base64 para o backend
-          }),
-        }
+      // Buscar currículo existente
+      let resposta = await fetch(
+        `http://localhost:3000/curriculos/buscarPorUsuario/${usuarioL.id}`
       );
 
+      const dados = await resposta.json();
+
+      // Existe currículo se NÃO houver erro
+      const curriculoExiste = !dados.erro;
+
+      // Se NÃO existir → POST
+      if (!curriculoExiste) {
+        resposta = await fetch(`http://localhost:3000/curriculos/registrar`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id_usuario: usuarioL.id,
+            arquivo_curriculo: base64,
+          }),
+        });
+      }
+
+      // Se existir → PUT usando o id_curriculo retornado
+      else {
+        resposta = await fetch(
+          `http://localhost:3000/curriculos/atualizar/${dados.id_curriculo}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              arquivo_curriculo: base64,
+            }),
+          }
+        );
+      }
+
       if (resposta.ok) {
-        const dados = await resposta.json();
-        setCurriculo(dados);
+        const atualizado = await resposta.json();
+        setCurriculo(atualizado);
         setSuccess(true);
       } else {
-        const erro = await resposta.text();
-        console.error("Erro ao atualizar:", erro);
-        setErro("Não foi possível conectar ao servidor.");
+        setErro("Erro ao salvar currículo.");
       }
     } catch (erro) {
-      console.error("Erro de conexão:", erro);
+      console.error("Erro:", erro);
       setErro("Não foi possível conectar ao servidor.");
     } finally {
       setLoading(false);
     }
   };
-  const handleSalvarDescricao = async () => {
-    setLoading(true);
-    setErro("");
-    setSuccess(false);
-
-    try {
-      const resposta = await fetch(
-        `http://localhost:3000/usuarios/atualizarDescricao/${usuarioL.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ descricao_perfil: descricao_perfil.trim() }),
-        }
-      );
-
-      if (resposta.ok) {
-        const dadosAtualizados = await fetch(
-          `http://localhost:3000/usuarios/buscarPorId/${usuarioL.id}`
-        );
-        const usuarioAtualizado = await dadosAtualizados.json();
-
-        setDescricao_perfil(usuarioAtualizado.descricao_perfil);
-        setSuccess(true);
-
-        setTimeout(() => {
-          setEditando(false);
-          setSuccess(false);
-        }, 500);
-      } else {
-        const erro = await resposta.text();
-        console.error("Erro ao atualizar descrição do perfil:", erro);
-        setErro("Não foi possível atualizar a descrição.");
-      }
-    } catch (error) {
-      console.error("Erro na requisição:", error);
-      setErro("Erro de conexão com o servidor.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // --- EXIBIR CURRÍCULO CADASTRADO ---
   const handleBaixarCurriculo = async () => {
     try {
@@ -299,32 +376,6 @@ export default function PerfilUsuario() {
     }
   };
 
-  const [cargo, setCargo] = useState("");
-  const [foto, setFoto] = useState("");
-  useEffect(() => {
-    if (!usuarioL) {
-      navigate("/");
-      return null;
-    }
-    const fetchCargo = async () => {
-      try {
-        const resposta = await fetch(
-          `http://localhost:3000/usuarios/buscarPorId/${usuarioL.id}`
-        );
-        if (resposta.ok) {
-          const dados = await resposta.json();
-          setCargo(dados);
-          setFoto(dados);
-          console.log(setFoto);
-        }
-      } catch (error) {
-        console.error("Erro ao buscar usuário por ID:", error);
-      }
-    };
-
-    fetchCargo();
-  }, [usuario.id]);
-
   return (
     <PaginaContainer>
       {/* NAVBAR */}
@@ -349,8 +400,8 @@ export default function PerfilUsuario() {
       {/* CONTEÚDO PERFIL */}
       <Conteudo>
         <ProfileContainer>
-          <FotoPerfil src={foto.foto} alt="Foto de perfil" />
-          <Nome>{usuarioL.nome}</Nome>
+          <FotoPerfil src={foto.preview} alt="Foto de perfil" />
+          <Nome>{nomePerfil}</Nome>
           <Cargo>{cargo.cargo}</Cargo>
           <Botoes>
             <Popup
@@ -591,7 +642,6 @@ export default function PerfilUsuario() {
             </BotaoConfig> */}
           </Botoes>
 
-          {/* 🔽 Novo botão logo abaixo */}
           <ExibeCurriculo onClick={handleBaixarCurriculo}>
             <AiFillFileText size={20} />
             {loading ? "Carregando..." : "Exibir Currículo"}

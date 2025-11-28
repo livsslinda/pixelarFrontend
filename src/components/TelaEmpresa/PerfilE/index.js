@@ -22,6 +22,7 @@ export default function PerfilUsuario() {
   const [abrirCurriculo, setAbrirCurriculo] = useState(false);
   const [cpf_cnpj, setCpf_cnpj] = useState("");
   const [nome, setNome] = useState("");
+  const [nomePerfil, setNomePerfil] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [usuario, setUsuario] = useState("");
@@ -95,8 +96,6 @@ export default function PerfilUsuario() {
         if (resposta.ok) {
           const dados = await resposta.json();
           setDescricao_perfil(dados.descricao_perfil);
-        } else {
-          console.error("Erro ao buscar descrição do perfil");
         }
       } catch (error) {
         console.error("Erro na requisição:", error);
@@ -104,7 +103,8 @@ export default function PerfilUsuario() {
     };
 
     fetchDescricaoPerfil();
-  }, [usuario.id]);
+  }, [usuarioL.id]);
+
   const handleSalvarDescricao = async () => {
     setLoading(true);
     setErro("");
@@ -123,18 +123,35 @@ export default function PerfilUsuario() {
       );
 
       if (resposta.ok) {
-        const dadosAtualizados = await fetch(
+        const resAtualizado = await fetch(
           `http://localhost:3000/usuarios/buscarPorId/${usuarioL.id}`
         );
-        const usuarioAtualizado = await dadosAtualizados.json();
+        const usuarioAtualizado = await resAtualizado.json();
 
+        
         setDescricao_perfil(usuarioAtualizado.descricao_perfil);
-        setSuccess(true);
 
-        setTimeout(() => {
-          setEditando(false);
-          setSuccess(false);
-        }, 500);
+       
+        setFormDados({
+          id_usuario: usuarioL.id,
+          nome: usuarioAtualizado.nome,
+          email: usuarioAtualizado.email,
+          cargo: usuarioAtualizado.cargo,
+          cpf_cnpj: usuarioAtualizado.cpf_cnpj,
+          senha: "",
+        });
+
+        setNomePerfil(usuarioAtualizado.nome);
+        setFoto({
+          preview: usuarioAtualizado.foto,
+          file: null,
+        });
+
+        setSuccess(true);
+        setAbrirEditar(false);
+
+        
+        setEditando(false);
       } else {
         const erro = await resposta.text();
         console.error("Erro ao atualizar descrição do perfil:", erro);
@@ -154,10 +171,12 @@ export default function PerfilUsuario() {
     event.preventDefault();
     setLoading(true);
     setErro("");
+
     try {
       let fotoBase64 = null;
-      if (foto) {
-        fotoBase64 = await converterParaBase64(foto);
+
+      if (foto.file) {
+        fotoBase64 = await converterParaBase64(foto.file);
       }
 
       const resposta = await fetch(
@@ -179,15 +198,11 @@ export default function PerfilUsuario() {
       );
 
       if (resposta.ok) {
-        const dados = await resposta.json();
-        setUsuario(dados);
-
-        setAbrirEditar(false);
         setSuccess(true);
+        setNomePerfil(resposta.nome);
+        setAbrirEditar(false);
       } else {
-        const erro = await resposta.text();
-        console.error("Erro ao atualizar:", erro);
-        setErro(erro.message || "Erro ao atualizar o Perfil. Tente novamente.");
+        setErro("Erro ao atualizar o Perfil.");
       }
     } catch (erro) {
       console.error("Erro de conexão:", erro);
@@ -196,20 +211,39 @@ export default function PerfilUsuario() {
       setLoading(false);
     }
   };
+
   useEffect(() => {
     const fetchCargo = async () => {
       if (!usuarioL) {
         navigate("/");
-        return null;
+        return;
       }
+
       try {
         const resposta = await fetch(
           `http://localhost:3000/usuarios/buscarPorId/${usuarioL.id}`
         );
+
         if (resposta.ok) {
           const dados = await resposta.json();
+
           setCargo(dados);
-          setFoto(dados);
+          setNomePerfil(dados.nome);
+          // FOTO SALVA NO BANCO
+          setFoto({
+            preview: dados.foto || "",
+            file: null,
+          });
+
+          // Preenche inputs
+          setFormDados({
+            id_usuario: usuarioL.id,
+            nome: dados.nome,
+            email: dados.email,
+            cargo: dados.cargo,
+            cpf_cnpj: dados.cpf_cnpj,
+            senha: "",
+          });
         }
       } catch (error) {
         console.error("Erro ao buscar usuário por ID:", error);
@@ -217,7 +251,7 @@ export default function PerfilUsuario() {
     };
 
     fetchCargo();
-  }, [usuario.id]);
+  }, [usuarioL.id]);
 
   return (
     <PaginaContainer>
@@ -244,8 +278,9 @@ export default function PerfilUsuario() {
       {/* CONTEÚDO PERFIL */}
       <Conteudo>
         <ProfileContainer>
-          <FotoPerfil src={foto.foto} alt="Foto de perfil" />
-          <Nome>{usuarioL.nome}</Nome>
+          <FotoPerfil src={foto.preview} alt="Foto de perfil" />
+
+          <Nome>{nomePerfil}</Nome>
           <Cargo>{cargo.cargo}</Cargo>
           <Botoes>
             <Popup
@@ -294,13 +329,21 @@ export default function PerfilUsuario() {
                     <h2 style={{ marginBottom: "15px", color: "#ffffffff" }}>
                       Configurações
                     </h2>
+                    {error && (
+                      <div className="alert alert-danger" role="alert">
+                        {error}
+                      </div>
+                    )}
+                    {success && (
+                      <SuccessBox>Perfil atualizado com sucesso!</SuccessBox>
+                    )}
 
                     <BotaoSalvar
                       onClick={() => setAbrirEditar(!abrirEditar)}
                       style={{
                         backgroundColor: "#7000d8",
                         color: "white",
-                        marginBottom: "20px",
+                        marginBottom: "5px",
                       }}
                     >
                       {abrirEditar ? "Fechar edição" : "Editar Perfil"}
@@ -319,6 +362,8 @@ export default function PerfilUsuario() {
                         width: "100%",
                         display: "flex",
                         justifyContent: "center",
+                        maxHeight: "80vh",
+                        overflowY: "auto",
                       }}
                     >
                       <EditarBox>
@@ -362,9 +407,16 @@ export default function PerfilUsuario() {
                         <Input
                           type="text"
                           value={formDados.cpf_cnpj}
+                          onChange={(e) =>
+                            setFormDados({
+                              ...formDados,
+                              cpf_cnpj: e.target.value,
+                            })
+                          }
                           placeholder="CPF/CNPJ"
                           required
                         />
+
                         <Input
                           type="password"
                           value={formDados.senha}
@@ -391,23 +443,14 @@ export default function PerfilUsuario() {
                           }}
                         />
 
-                        {foto && (
+                        {foto?.preview && (
                           <img
                             src={foto.preview}
                             alt="Prévia"
                             style={styles.preview}
                           />
                         )}
-                        {error && (
-                          <div className="alert alert-danger" role="alert">
-                            {error}
-                          </div>
-                        )}
-                        {success && (
-                          <SuccessBox>
-                            Perfil atualizado com sucesso!
-                          </SuccessBox>
-                        )}
+
                         <BotaoSalvar
                           onClick={handleSalvarPerfil}
                           disabled={loading}
@@ -660,7 +703,7 @@ const EditarBox = styled(motion.div)`
   background: linear-gradient(135deg, #ffffff 0%, #f4f0ff 100%);
   border-radius: 16px;
   box-shadow: 0px 10px 25px rgba(0, 0, 0, 0.15);
-  padding: 40px 30px;
+  padding: 20px 10px;
   width: 85%;
   max-width: 750px;
   display: flex;
@@ -682,7 +725,7 @@ const EditarBox = styled(motion.div)`
 const Input = styled.input`
   width: 90%;
   max-width: 650px;
-  padding: 12px 16px;
+  padding: 10px 12px;
   border: 2px solid #d5c4ff;
   border-radius: 10px;
   font-size: 15px;
@@ -733,7 +776,7 @@ const BotaoSalvar = styled.button`
   font-weight: 600;
   font-size: 15px;
   cursor: pointer;
-  margin-top: 10px;
+  margin-top: 2px;
   box-shadow: 0 4px 12px rgba(112, 0, 216, 0.4);
   transition: all 0.3s ease;
 
@@ -763,12 +806,11 @@ const BotaoConfig = styled.div`
 const styles = {
   preview: {
     display: "flex",
-    marginTop: "10px",
+    marginTop: "2px",
     width: "200px",
     height: "200px",
     borderRadius: "50%",
     objectFit: "cover",
-    border: "3px solid #00ccff",
   },
   container: {
     display: "flex",
