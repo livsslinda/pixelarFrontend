@@ -8,17 +8,24 @@ import { FiLogOut } from "react-icons/fi";
 import { VscAccount } from "react-icons/vsc";
 import Dock from "../../componentesMenu/Dock";
 import PillNav from "../../componentesMenu/PillNav";
-
+import { FaBullseye } from "react-icons/fa";
 export default function VagasUsuario() {
   const [vagas, setVagas] = useState([]);
   const [erro, setErro] = useState(null);
+  const [animando, setAnimando] = useState(false);
+  const [success, setSucess] = useState(false);
   const [loading, setLoading] = useState(true);
+  //y
   const [setores, setSetores] = useState([]);
   const [setorSelecionado, setSetorSelecionado] = useState("");
   const [salarioMaximo, setSalarioMaximo] = useState(0);
   const [maiorSalarioDisponivel, setMaiorSalarioDisponivel] = useState(0);
   const [buscaTitulo, setBuscaTitulo] = useState("");
+
+  //
   const navigate = useNavigate();
+
+  //
   const vagasFiltradas = vagas.filter((v) => {
     const tituloValido = v.titulo
       .toLowerCase()
@@ -27,6 +34,7 @@ export default function VagasUsuario() {
     const setorValido = !setorSelecionado || v.setor === setorSelecionado;
     return tituloValido && salarioValido && setorValido;
   });
+  //
 
   const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
 
@@ -60,6 +68,7 @@ export default function VagasUsuario() {
         setSalarioMaximo(maiorSalario);
         const setoresUnicos = [...new Set(vagasComEmpresa.map((v) => v.setor))];
         setSetores(setoresUnicos);
+        //
       } catch (error) {
         setErro("Erro ao buscar vagas.");
       } finally {
@@ -69,14 +78,17 @@ export default function VagasUsuario() {
     fetchVagas();
   }, []);
 
-  const handleInscrever = async (id_vaga) => {
+  const handleInscrever = async (id_vaga, event) => {
+    event.preventDefault();
+    setLoading(true);
+    setErro("");
     try {
       const respostaCurriculo = await fetch(
         `http://localhost:3000/curriculos/buscarPorUsuario/${usuario.id}`
       );
       const id_curriculo = respostaCurriculo.id_curriculo;
       if (!respostaCurriculo.ok) {
-        alert("Erro: Currículo não encontrado para este usuário.");
+        setErro("Erro: Currículo não encontrado para este usuário.");
         return;
       }
 
@@ -91,19 +103,21 @@ export default function VagasUsuario() {
           id_curriculo: curriculo.id_curriculo,
         }),
       });
-      alert(id_vaga + " " + curriculo.id_curriculo);
+      console.log(id_vaga + " " + curriculo.id_curriculo);
 
       const dados = await resposta.json();
-      alert(dados.id_curriculo);
+      console.log(dados.id_curriculo);
       if (!resposta.ok) {
-        alert(`Erro: ${dados.mensagem || " Falha ao se inscrever."}`);
+        setErro(`Erro: ${dados.mensagem || " Falha ao se inscrever."}`);
         return;
       }
-
-      alert("Inscrição realizada com sucesso!");
+      setSucess(true);
+      console.log("Inscrição realizada com sucesso!");
     } catch (error) {
       console.error("Erro ao se inscrever:", error);
-      alert("Erro ao se inscrever na vaga.");
+      setErro("Não foi possível conectar ao servidor.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -114,7 +128,11 @@ export default function VagasUsuario() {
     localStorage.removeItem("usuarioLogado");
     setTimeout(() => navigate("/"), 500);
   };
-
+  useEffect(() => {
+    setAnimando(true);
+    const timer = setTimeout(() => setAnimando(false), 400); // duração da animação
+    return () => clearTimeout(timer);
+  }, [setorSelecionado, salarioMaximo, buscaTitulo]);
   const items = [
     {
       icon: <VscAccount size={18} />,
@@ -137,7 +155,6 @@ export default function VagasUsuario() {
           logoAlt="Company Logo"
           items={[
             { label: "Home", href: "/vagasU" },
-            { label: "Relatórios", href: "/relatorios" },
             { label: "Candidaturas", href: "/candidaturaUsuario" },
           ]}
           activeHref="/vagasU"
@@ -182,7 +199,8 @@ export default function VagasUsuario() {
             onChange={(e) => setSalarioMaximo(Number(e.target.value))}
           />
         </BarraLateral>
-        <ListaVagas>
+
+        <ListaVagas className={animando ? "animando" : ""}>
           {loading && <p>Carregando vagas...</p>}
           {erro && <p>{erro}</p>}
           {!loading && vagas.length === 0 && <p>Nenhuma vaga encontrada.</p>}
@@ -228,18 +246,34 @@ export default function VagasUsuario() {
                           <b>Setor:</b> {vaga.setor}
                         </p>
                         <p>
-                          <b>Salário:</b> R$ {vaga.salario}
+                          <p>
+                            <b>Salário:</b>{" "}
+                            {vaga.salario === "A combinar"
+                              ? "A combinar"
+                              : `R$ ${vaga.salario}`}
+                          </p>
                         </p>
                         <p>
                           <b>Empresa:</b> {vaga.nome_empresa}
                         </p>
                       </div>
 
-                      <BotaoInscrever
-                        onClick={() => handleInscrever(vaga.id_vaga)}
+                      {erro && (
+                        <div className="alert alert-danger" role="alert">
+                          {erro}
+                        </div>
+                      )}
+                      {success && (
+                        <SuccessBox>Inscrição bem-sucedida</SuccessBox>
+                      )}
+                      <BotaoSalvar
+                        onClick={(e) => handleInscrever(vaga.id_vaga, e)}
+                        disabled={loading}
                       >
-                        Inscrever-se
-                      </BotaoInscrever>
+                                               {" "}
+                        {loading ? "Inscrevendo.." : "Inscrever-se"}           
+                                 {" "}
+                      </BotaoSalvar>
                     </div>
                   </div>
                 )}
@@ -267,7 +301,36 @@ const PaginaContainer = styled.div`
   background-color: #efefff;
   min-height: 100vh;
 `;
+const BotaoSalvar = styled.button`
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #7000d8, #b188ff);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  margin-top: 10px;
+  box-shadow: 0 4px 12px rgba(112, 0, 216, 0.4);
+  transition: all 0.3s ease;
 
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(112, 0, 216, 0.5);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+`;
+const SuccessBox = styled.div`
+  background-color: #d4edda;
+  border: 1px solid #c3e6cb;
+  color: #155724;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 15px;
+`;
 const BarraNavegacao = styled.div`
   background-color: #7000d8;
   display: flex;
@@ -344,7 +407,7 @@ const BarraLateral = styled.div`
   background-color: #c0b4ff;
   padding: 20px;
   border-radius: 10px;
-  border: 2px solid #3891ff;
+  border: 1px solid #3891ff;
   margin-right: 30px;
   display: flex;
   flex-direction: column;
@@ -401,12 +464,17 @@ const ControleDeslizante = styled.input.attrs({ type: "range" })`
     cursor: pointer;
   }
 `;
-
 const ListaVagas = styled.div`
   display: flex;
   flex-direction: column;
   gap: 20px;
   flex: 1;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+
+  &.animando {
+    opacity: 0;
+    transform: scale(0.98);
+  }
 `;
 
 const CartaoVaga = styled.div`

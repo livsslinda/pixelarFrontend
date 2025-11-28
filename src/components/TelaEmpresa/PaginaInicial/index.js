@@ -23,22 +23,23 @@ export default function PaginaInicial() {
   const [vagas, setVagas] = useState([]);
   const [erro, setErro] = useState(null);
   const [loading, setLoading] = useState(true);
-  
-    //
-    const [setores, setSetores] = useState([]);
-    const [setorSelecionado, setSetorSelecionado] = useState("");
-    const [salarioMaximo, setSalarioMaximo] = useState(0);
-    const [maiorSalarioDisponivel, setMaiorSalarioDisponivel] = useState(0);
-    const [buscaTitulo, setBuscaTitulo] = useState("");
-    //
-    const vagasFiltradas = vagas.filter((v) => {
-    const tituloValido = v.titulo.toLowerCase().includes(buscaTitulo.toLowerCase());
+
+  //
+  const [setores, setSetores] = useState([]);
+  const [setorSelecionado, setSetorSelecionado] = useState("");
+  const [salarioMaximo, setSalarioMaximo] = useState(0);
+  const [maiorSalarioDisponivel, setMaiorSalarioDisponivel] = useState(0);
+  const [buscaTitulo, setBuscaTitulo] = useState("");
+  //
+  const vagasFiltradas = vagas.filter((v) => {
+    const tituloValido = v.titulo
+      .toLowerCase()
+      .includes(buscaTitulo.toLowerCase());
     const salarioValido = !salarioMaximo || Number(v.salario) <= salarioMaximo;
     const setorValido = !setorSelecionado || v.setor === setorSelecionado;
     return tituloValido && salarioValido && setorValido;
-    });
-    //
-
+  });
+  //
 
   const [vagaEmEdicao, setVagaEmEdicao] = useState(null);
   const [formDados, setFormDados] = useState({
@@ -88,7 +89,7 @@ export default function PaginaInicial() {
         }
         const dados = await resposta.json();
         setVagas(dados);
-      const vagasComEmpresa = await Promise.all(
+        const vagasComEmpresa = await Promise.all(
           dados.map(async (vaga) => {
             const resUsuario = await fetch(
               `http://localhost:3000/usuarios/buscarPorId/${vaga.id_usuario}`
@@ -99,9 +100,11 @@ export default function PaginaInicial() {
             return { ...vaga, nome_empresa: usuarioDados.nome };
           })
         );
-        const maiorSalario = Math.max(...vagasComEmpresa.map(v => Number(v.salario) || 0));
-setMaiorSalarioDisponivel(maiorSalario);
-setSalarioMaximo(maiorSalario); // já começa no máximo
+        const maiorSalario = Math.max(
+          ...vagasComEmpresa.map((v) => Number(v.salario) || 0)
+        );
+        setMaiorSalarioDisponivel(maiorSalario);
+        setSalarioMaximo(maiorSalario); // já começa no máximo
         console.log("Empresa da vaga:", vagas.nome_empresa);
         setVagas(vagasComEmpresa);
         //
@@ -444,100 +447,105 @@ setSalarioMaximo(maiorSalario); // já começa no máximo
                     >
                       <i className="bi bi-pencil-square"></i>
                     </button>
-{showEditModal && (
-                  <Popup
-                    open={showEditModal}
-                    modal
-                    nested
-                    onClose={handleCancelarEdicao}
-                    overlayStyle={{ background: "rgba(0, 0, 0, 0.5)" }}
-                    contentStyle={{
-                      background: "transparent",
-                      border: "none",
-                      boxShadow: "none",
-                      padding: 0,
-                    }}
-                  >
-                    {(close) => (
-                      <div style={styles.container}>
-                        <div style={styles.card2}>
-                          <h2
-                            style={styles.fechar}
-                            onClick={handleCancelarEdicao}
-                          >
-                            Fechar ✖
-                          </h2>
-                          <h2 style={{ marginBottom: "15px" }}>Editar Vaga</h2>
-                          <form onSubmit={handleSalvarEdicao}>
-                            <InputForm
-                              type="text"
-                              value={formDados.titulo}
-                              onChange={(e) =>
-                                setFormDados({
-                                  ...formDados,
-                                  titulo: e.target.value,
-                                })
-                              }
-                              placeholder="Título"
-                              required
-                            />
-                            <InputForm
-                              type="text"
-                              value={formDados.descricao}
-                              onChange={(e) =>
-                                setFormDados({
-                                  ...formDados,
-                                  descricao: e.target.value,
-                                })
-                              }
-                              placeholder="Descrição"
-                              required
-                            />
-                            <InputForm
-                              type="text"
-                              value={formDados.requisitos}
-                              onChange={(e) =>
-                                setFormDados({
-                                  ...formDados,
-                                  requisitos: e.target.value,
-                                })
-                              }
-                              placeholder="Requisitos"
-                              required
-                            />
-                            <InputForm
-                              type="text"
-                              value={formDados.setor}
-                              onChange={(e) =>
-                                setFormDados({
-                                  ...formDados,
-                                  setor: e.target.value,
-                                })
-                              }
-                              placeholder="Setor"
-                              required
-                            />
-                            <InputForm
-                              type="number"
-                              value={formDados.salario}
-                              onChange={(e) =>
-                                setFormDados({
-                                  ...formDados,
-                                  salario: e.target.value,
-                                })
-                              }
-                              placeholder="Salário"
-                              required
-                            />
-                            <BotaoSubmit type="submit" disabled={isUpdating}>
-                              {isUpdating ? "Salvando..." : "Salvar Edição"}
-                            </BotaoSubmit>
-                          </form>
-                        </div>
-                      </div>
+                    {showEditModal && (
+                      <Popup
+                        open={showEditModal}
+                        modal
+                        nested
+                        onClose={handleCancelarEdicao}
+                        overlayStyle={{ background: "rgba(0, 0, 0, 0.5)" }}
+                        contentStyle={{
+                          background: "transparent",
+                          border: "none",
+                          boxShadow: "none",
+                          padding: 0,
+                        }}
+                      >
+                        {(close) => (
+                          <div style={styles.container}>
+                            <div style={styles.card2}>
+                              <h2
+                                style={styles.fechar}
+                                onClick={handleCancelarEdicao}
+                              >
+                                Fechar ✖
+                              </h2>
+                              <h2 style={{ marginBottom: "15px" }}>
+                                Editar Vaga
+                              </h2>
+                              <form onSubmit={handleSalvarEdicao}>
+                                <InputForm
+                                  type="text"
+                                  value={formDados.titulo}
+                                  onChange={(e) =>
+                                    setFormDados({
+                                      ...formDados,
+                                      titulo: e.target.value,
+                                    })
+                                  }
+                                  placeholder="Título"
+                                  required
+                                />
+                                <InputForm
+                                  type="text"
+                                  value={formDados.descricao}
+                                  onChange={(e) =>
+                                    setFormDados({
+                                      ...formDados,
+                                      descricao: e.target.value,
+                                    })
+                                  }
+                                  placeholder="Descrição"
+                                  required
+                                />
+                                <InputForm
+                                  type="text"
+                                  value={formDados.requisitos}
+                                  onChange={(e) =>
+                                    setFormDados({
+                                      ...formDados,
+                                      requisitos: e.target.value,
+                                    })
+                                  }
+                                  placeholder="Requisitos"
+                                  required
+                                />
+                                <InputForm
+                                  type="text"
+                                  value={formDados.setor}
+                                  onChange={(e) =>
+                                    setFormDados({
+                                      ...formDados,
+                                      setor: e.target.value,
+                                    })
+                                  }
+                                  placeholder="Setor"
+                                  required
+                                />
+                                <InputForm
+                                  type="number"
+                                  value={formDados.salario}
+                                  onChange={(e) =>
+                                    setFormDados({
+                                      ...formDados,
+                                      salario: e.target.value,
+                                    })
+                                  }
+                                  placeholder="Salário"
+                                  required
+                                />
+                                <BotaoSubmit
+                                  type="submit"
+                                  disabled={isUpdating}
+                                >
+                                  {isUpdating ? "Salvando..." : "Salvar Edição"}
+                                </BotaoSubmit>
+                              </form>
+                            </div>
+                          </div>
+                        )}
+                      </Popup>
                     )}
-                  </Popup>
-                )}
                     <button
                       title="Excluir"
                       className="btn btn-sm btn-outline-danger me-2"
@@ -778,7 +786,6 @@ const BarraLateral = styled.div`
   background-color: #c0b4ff;
   padding: 20px;
   border-radius: 10px;
-  border: 2px solid #3891ff;
   margin-right: 30px;
   display: flex;
   flex-direction: column;

@@ -26,7 +26,7 @@ export default function CadastroUsuario() {
 
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
-
+  
   const handleVoltar = () => {
     setTimeout(() => {
       navigate("/");

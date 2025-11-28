@@ -206,8 +206,6 @@ const TituloVaga = styled.h1`
 `;
 
 const TriagemLayout = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
   gap: 30px;
   animation: ${fadeIn} 0.5s ease;
   margin-top: 20px;
@@ -216,9 +214,14 @@ const TriagemLayout = styled.div`
 const Coluna1 = styled.div`
   background-color: #cdbbff;
   padding: 10px;
-  border-radius: 5px
+  border-radius: 5px;
   width: 95%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   height: 100%;
+  flex-direction: column;
+  justify-self: center;
 `;
 const Coluna = styled.div`
   background-color: #cdbbff;
@@ -245,6 +248,7 @@ const CardJornada = styled.div`
   padding: 10px;
   border-radius: 12px;
   text-align: center;
+  width: 30vw;
 `;
 
 const BotaoTarefa = styled.button`
@@ -313,7 +317,6 @@ export default function CandidaturaUsuario() {
           logoAlt="Company Logo"
           items={[
             { label: "Home", href: "/vagasU" },
-            { label: "Relatórios", href: "/relatorios" },
             { label: "Candidaturas", href: "/candidaturaUsuario" },
           ]}
           activeHref="/candidaturaUsuario"
@@ -376,47 +379,6 @@ export default function CandidaturaUsuario() {
                 ))}
               </GridJornadas>
             </Coluna1>
-
-            <Coluna>
-              <TituloSecao>Chat</TituloSecao>
-
-              <ContainerChat>
-                <ListaEmpresas>
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <EmpresaItem key={i}>
-                      <AvatarEmpresa
-                        src="https://i.pravatar.cc/50"
-                        alt="empresa"
-                      />
-                      EMPRESA {i}
-                    </EmpresaItem>
-                  ))}
-                </ListaEmpresas>
-
-                <ChatWrapper>
-                  <ChatBox>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                      }}
-                    >
-                      <AvatarEmpresa
-                        src="https://i.pravatar.cc/50"
-                        alt="empresa"
-                      />
-                      <strong>EMPRESA 1</strong>
-                    </div>
-                    <Mensagem>Olá, tudo bem?</Mensagem>
-                    <Mensagem enviada>Oi, tudo ótimo!</Mensagem>
-                    <Mensagem>Estamos analisando seu perfil.</Mensagem>
-                  </ChatBox>
-
-                  <InputMensagem placeholder="Digite sua mensagem..." />
-                </ChatWrapper>
-              </ContainerChat>
-            </Coluna>
           </TriagemLayout>
         )}
       </Conteudo>

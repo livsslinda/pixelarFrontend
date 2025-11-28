@@ -180,16 +180,30 @@ export default function PerfilUsuario() {
   const handleSalvarCurriculo = async () => {
     setLoading(true);
     setErro("");
+    setSuccess(false);
     try {
+      if (!curriculo.file) {
+        setErro("Selecione um arquivo PDF primeiro.");
+        setLoading(false);
+        return;
+      }
+
+      const base64 = await converterParaBase64(curriculo.file);
+
       const resposta = await fetch(
-        `http://localhost:3000/curriculos/atualizar/${usuarioL.id}`,
+        `http://localhost:3000/curriculos/registrar`,
         {
-          method: "PUT",
+          method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
+          body: JSON.stringify({
+            id_usuario: usuarioL.id,
+            arquivo_curriculo: base64, // Envia em base64 para o backend
+          }),
         }
       );
+
       if (resposta.ok) {
         const dados = await resposta.json();
         setCurriculo(dados);
@@ -232,7 +246,6 @@ export default function PerfilUsuario() {
         setDescricao_perfil(usuarioAtualizado.descricao_perfil);
         setSuccess(true);
 
-      
         setTimeout(() => {
           setEditando(false);
           setSuccess(false);
@@ -245,6 +258,42 @@ export default function PerfilUsuario() {
     } catch (error) {
       console.error("Erro na requisição:", error);
       setErro("Erro de conexão com o servidor.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- EXIBIR CURRÍCULO CADASTRADO ---
+  const handleBaixarCurriculo = async () => {
+    try {
+      setLoading(true);
+      setErro("");
+
+      const resposta = await fetch(
+        `http://localhost:3000/curriculos/buscarPorUsuario/${usuarioL.id}`
+      );
+
+      if (!resposta.ok) {
+        throw new Error("Currículo não encontrado para este usuário.");
+      }
+
+      const dados = await resposta.json();
+
+      // Caso o backend retorne a URL do arquivo (ex: arquivo_url)
+      if (dados.arquivo_url) {
+        window.open(dados.arquivo_url, "_blank"); // abre em nova aba
+      } else if (dados.arquivo_curriculo) {
+        // Se veio em base64
+        const link = document.createElement("a");
+        link.href = dados.arquivo_curriculo;
+        link.download = "curriculo.pdf";
+        link.click();
+      } else {
+        throw new Error("Nenhum arquivo de currículo encontrado.");
+      }
+    } catch (error) {
+      console.error(error);
+      setErro("Não foi possível carregar o currículo.");
     } finally {
       setLoading(false);
     }
@@ -285,7 +334,6 @@ export default function PerfilUsuario() {
           logoAlt="Company Logo"
           items={[
             { label: "Home", href: "/vagasU" },
-            { label: "Relatórios", href: "/relatorios" },
             { label: "Candidaturas", href: "/candidaturaUsuario" },
           ]}
           activeHref="/"
@@ -535,12 +583,19 @@ export default function PerfilUsuario() {
                 </div>
               )}
             </Popup>
+
             {/* <BotaoConfig>
               {" "}
               <h6>Atualizar Currículo</h6>
               <AiFillFileText size={30} />
             </BotaoConfig> */}
           </Botoes>
+
+          {/* 🔽 Novo botão logo abaixo */}
+          <ExibeCurriculo onClick={handleBaixarCurriculo}>
+            <AiFillFileText size={20} />
+            {loading ? "Carregando..." : "Exibir Currículo"}
+          </ExibeCurriculo>
         </ProfileContainer>
 
         <ResumoBox>
@@ -588,6 +643,32 @@ export default function PerfilUsuario() {
     </PaginaContainer>
   );
 }
+
+const ExibeCurriculo = styled.button`
+  margin-top: 5px;
+  padding: 10px 20px;
+  border-radius: 12px;
+  border: none;
+  background-color: #28a745;
+  color: white;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background-color: #218838;
+    transform: scale(1.02);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+`;
 
 const BarraNav = styled.div`
   background-color: rgba(112, 0, 216, 0);

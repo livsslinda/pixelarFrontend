@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import Logo from "../../../img/logo.png";
@@ -9,22 +9,135 @@ import { FiLogOut } from "react-icons/fi";
 import { VscAccount } from "react-icons/vsc";
 import Dock from "../../componentesMenu/Dock";
 export default function Dashboard() {
+  const [vagasUsuario, setVagasUsuario] = useState([]);
+  const [vagaSelecionada, setVagaSelecionada] = useState("");
+  const [candidaturas, setCandidaturas] = useState([]);
+
   const navigate = useNavigate();
 
-  const handleVagas = () => navigate("/vagas");
-  const handleCandidatos = () => navigate("/candidatos");
-  const handlePerfil = () => {
-    navigate("/perfilE");
-  };
   const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
-  if (!usuario) {
-    navigate("/");
-    return;
+  useEffect(() => {
+    async function carregarDados() {
+      const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
+      if (!usuario?.id) return;
+
+      const vagasRes = await fetch(
+        `http://localhost:3000/vagas/listarPorIdUsuario/${usuario.id}`
+      );
+      const vagasData = await vagasRes.json();
+      setVagasUsuario(Array.isArray(vagasData) ? vagasData : []);
+
+      const candRes = await fetch("http://localhost:3000/candidaturas");
+      const candData = await candRes.json();
+      setCandidaturas(Array.isArray(candData) ? candData : []);
+    }
+
+    carregarDados();
+  }, []);
+  function totalDeCandidatos() {
+    if (!vagaSelecionada) {
+      return candidaturas.length;
+    }
+
+    return candidaturas.filter((c) => c.id_vaga == vagaSelecionada).length;
   }
+  function totalDeVagasPreenchidas() {
+    if (!vagaSelecionada) {
+      // Geral
+      return candidaturas.filter((c) => c.status === "aprovado").length;
+    }
+
+    // Apenas da vaga selecionada
+    return candidaturas.filter(
+      (c) => c.id_vaga == vagaSelecionada && c.status === "aprovado"
+    ).length;
+  }
+
+  useEffect(() => {
+    const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
+
+    if (!usuario) {
+      navigate("/");
+      return;
+    }
+
+    if (!usuario.id) return;
+
+    fetch(`http://localhost:3000/vagas/listarPorIdUsuario/${usuario.id}`)
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Retorno da API:", data);
+
+        // garante que vagasUsuario SEMPRE será um array
+        setVagasUsuario(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => console.error(err));
+  }, [navigate]);
+  // Agrupar candidaturas por vaga
+  const vagasProcessadas = vagasUsuario.map((v) => {
+    const candidatosDaVaga = candidaturas.filter(
+      (c) => c.id_vaga === v.id_vaga
+    );
+
+    return {
+      id_vaga: v.id_vaga,
+      titulo: v.titulo,
+      status: v.status || "Em andamento",
+      total: candidatosDaVaga.length,
+      aprovados: candidatosDaVaga.filter((c) => c.status === "aprovado").length,
+      reprovados: candidatosDaVaga.filter((c) => c.status === "reprovado")
+        .length,
+    };
+  });
+  const funil = (() => {
+    let dadosVaga;
+
+    if (!vagaSelecionada) {
+      // Somatório geral
+      const total = candidaturas.length;
+      const aprovados = candidaturas.filter(
+        (c) => c.status === "aprovado"
+      ).length;
+      const reprovados = candidaturas.filter(
+        (c) => c.status === "reprovado"
+      ).length;
+
+      return {
+        total,
+        emAnalise: total - aprovados - reprovados,
+        aprovados,
+        reprovados,
+      };
+    } else {
+      // Filtrar vaga específica
+      const candidatosVaga = candidaturas.filter(
+        (c) => c.id_vaga == vagaSelecionada
+      );
+      const total = candidatosVaga.length;
+      const aprovados = candidatosVaga.filter(
+        (c) => c.status === "aprovado"
+      ).length;
+      const reprovados = candidatosVaga.filter(
+        (c) => c.status === "reprovado"
+      ).length;
+
+      return {
+        total,
+        emAnalise: total - aprovados - reprovados,
+        aprovados,
+        reprovados,
+      };
+    }
+  })();
+
   const handleLogout = () => {
     localStorage.removeItem("usuarioLogado");
     setTimeout(() => navigate("/"), 500);
   };
+  const handlePerfil = () => {
+    navigate("/PerfilU");
+  };
+
   const BarraNav = styled.div`
     background-color: rgba(112, 0, 216, 0);
     display: flex;
@@ -69,21 +182,18 @@ export default function Dashboard() {
       {/* FILTROS */}
       <Filtros>
         <div>
-          <Rotulo>Período</Rotulo>
-          <Selecao>
-            <option>Últimos 30 dias</option>
-          </Selecao>
-        </div>
-        <div>
           <Rotulo>Projeto</Rotulo>
-          <Selecao>
-            <option>Todos os projetos</option>
-          </Selecao>
-        </div>
-        <div>
-          <Rotulo>Status</Rotulo>
-          <Selecao>
-            <option>Aberta</option>
+          <Selecao
+            value={vagaSelecionada}
+            onChange={(e) => setVagaSelecionada(e.target.value)}
+          >
+            <option value="">Todos os projetos</option>
+
+            {vagasUsuario.map((vaga) => (
+              <option key={vaga.id_vaga} value={vaga.id_vaga}>
+                {vaga.titulo}
+              </option>
+            ))}
           </Selecao>
         </div>
       </Filtros>
@@ -91,25 +201,17 @@ export default function Dashboard() {
       {/* CARDS */}
       <Cards>
         <Card>
-          <h3>Total de Vagas</h3>
-          <p>
-            <strong>12</strong>
-          </p>
-          <span>4 abertas</span>
-        </Card>
-        <Card>
           <h3>Candidatos Totais</h3>
           <p>
-            <strong>325</strong>
+            <strong>{totalDeCandidatos()}</strong>
           </p>
-          <span>+15 esta semana</span>
         </Card>
+
         <Card>
           <h3>Vagas Preenchidas</h3>
           <p>
-            <strong>8</strong>
+            <strong>{totalDeVagasPreenchidas()}</strong>
           </p>
-          <span>Meta: 10</span>
         </Card>
       </Cards>
 
@@ -117,42 +219,42 @@ export default function Dashboard() {
       <SecaoInferior>
         <PainelGrande>
           <h3>Funil de Recrutamento</h3>
-          <Funil />
+          <FunilContainer>
+            <BarraFunil tamanho={funil.total}>
+              <span>Aplicações: {funil.total}</span>
+            </BarraFunil>
 
+            <BarraFunil tamanho={funil.emAnalise}>
+              <span>Em Análise: {funil.emAnalise}</span>
+            </BarraFunil>
+
+            <BarraFunil tamanho={funil.aprovados}>
+              <span>Aprovados: {funil.aprovados}</span>
+            </BarraFunil>
+
+            <BarraFunil tamanho={funil.reprovados}>
+              <span>Reprovados: {funil.reprovados}</span>
+            </BarraFunil>
+          </FunilContainer>
           <Tabela>
             <thead>
               <tr>
                 <th>Vaga</th>
                 <th>Status</th>
-                <th>Tempo Aberta</th>
+                <th>Candidatos</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>Dev Front End</td>
-                <td>Em andamento</td>
-                <td>10 dias</td>
-              </tr>
-              <tr>
-                <td>Designer UX</td>
-                <td>Fechada</td>
-                <td>7 dias</td>
-              </tr>
+              {vagasProcessadas.map((v) => (
+                <tr key={v.id_vaga}>
+                  <td>{v.titulo}</td>
+                  <td>{v.status}</td>
+                  <td>{v.total}</td>
+                </tr>
+              ))}
             </tbody>
           </Tabela>
         </PainelGrande>
-
-        <PainelPequeno>
-          <h3>Origem dos Candidatos</h3>
-          <Donut />
-          <Alertas>
-            <strong>Tarefas / Alertas</strong>
-            <ul>
-              <li>Agendar entrevista com João L.</li>
-              <li>Vaga Dev Back-end sem candidatos há 5 dias</li>
-            </ul>
-          </Alertas>
-        </PainelPequeno>
       </SecaoInferior>
       <DockWrapper>
         <Dock
@@ -165,6 +267,24 @@ export default function Dashboard() {
     </PaginaContainer>
   );
 }
+const FunilContainer = styled.div`
+  width: 100%;
+  margin: 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
+
+const BarraFunil = styled.div`
+  background: #6a5acd;
+  padding: 10px;
+  border-radius: 8px;
+  width: ${({ tamanho }) =>
+    tamanho === 0 ? "10%" : `${Math.min(tamanho * 10, 100)}%`};
+  transition: width 0.4s ease;
+  color: #fff;
+  font-weight: bold;
+`;
 
 /* ---------- ESTILOS ---------- */
 const DockWrapper = styled.div`
@@ -251,6 +371,8 @@ const SecaoInferior = styled.div`
   align-items: center;
   margin-right: 10px;
   margin-left: 10px;
+  width: 95%;
+  justify-self: center;
 `;
 
 const PainelGrande = styled.div`
