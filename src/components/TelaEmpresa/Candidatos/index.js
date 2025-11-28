@@ -12,6 +12,7 @@ import Dock from "../../componentesMenu/Dock";
 import Popup from "reactjs-popup";
 import "reactjs-popup/dist/index.css";
 import { IoMdClose } from "react-icons/io";
+import { AiFillFileText } from "react-icons/ai";
 
 // ---------- ESTILOS ----------
 const CartaoCandidato = styled.div`
@@ -58,7 +59,31 @@ const InputPontuacao = styled.input`
     outline: 2px solid #6c00ff;
   }
 `;
+const ExibeCurriculo = styled.button`
+  margin-top: 5px;
+  padding: 10px 20px;
+  border-radius: 12px;
+  border: none;
+  background-color: #28a745;
+  color: white;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
 
+  &:hover {
+    background-color: #218838;
+    transform: scale(1.02);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+`;
 const SelectEdit = styled.select`
   padding: 12px;
   border: none;
@@ -342,7 +367,54 @@ export default function Candidatos() {
       setLoading(false);
     }
   };
+  const deletarCandidatura = async (cand) => {
+    try {
+      await fetch(
+        `http://localhost:3000/candidaturas/deletar/${cand.id_candidatura}`,
+        {
+          method: "DELETE",
+        }
+      );
 
+      await carregarCandidatos();
+    } catch {
+      setErro("Erro ao deletar Candidatura");
+    }
+  };
+  const handleBaixarCurriculo = async (cand) => {
+    try {
+      setLoading(true);
+      setErro("");
+
+      const resposta = await fetch(
+        `http://localhost:3000/curriculos/buscarPorUsuario/${cand.id_candidatura}`
+      );
+
+      if (!resposta.ok) {
+        throw new Error("Currículo não encontrado para este usuário.");
+      }
+
+      const dados = await resposta.json();
+
+      // Caso o backend retorne a URL do arquivo (ex: arquivo_url)
+      if (dados.arquivo_url) {
+        window.open(dados.arquivo_url, "_blank"); // abre em nova aba
+      } else if (dados.arquivo_curriculo) {
+        // Se veio em base64
+        const link = document.createElement("a");
+        link.href = dados.arquivo_curriculo;
+        link.download = "curriculo.pdf";
+        link.click();
+      } else {
+        throw new Error("Nenhum arquivo de currículo encontrado.");
+      }
+    } catch (error) {
+      console.error(error);
+      setErro("Não foi possível carregar o currículo.");
+    } finally {
+      setLoading(false);
+    }
+  };
   const editarCandidatura = async (cand) => {
     try {
       const body = {
@@ -488,6 +560,15 @@ export default function Candidatos() {
                                       ? `${cand.pontuacao}%`
                                       : "N/A"}
                                   </p>
+
+                                  <ExibeCurriculo
+                                    onClick={() => handleBaixarCurriculo(cand)}
+                                  >
+                                    <AiFillFileText size={20} />
+                                    {loading
+                                      ? "Carregando..."
+                                      : "Exibir Currículo"}
+                                  </ExibeCurriculo>
                                 </InfoBox>
 
                                 <BotaoEditar
@@ -552,6 +633,13 @@ export default function Candidatos() {
                               </PopupCard>
                             )}
                           </Popup>
+                          <button
+                            title="Excluir"
+                            className="btn btn-sm btn-outline-danger me-2"
+                            onClick={() => deletarCandidatura(cand)}
+                          >
+                            <i className="bi bi-trash3-fill"></i>
+                          </button>
                         </Acoes>
                       </CartaoCandidatoAnimado>
                     );
